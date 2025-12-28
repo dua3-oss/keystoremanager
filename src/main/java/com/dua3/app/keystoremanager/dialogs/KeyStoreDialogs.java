@@ -29,6 +29,7 @@ import com.dua3.utility.fx.controls.InputResult;
 import com.dua3.utility.fx.controls.InputValidatorFactory;
 import com.dua3.utility.text.MessageFormatter;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextArea;
 import javafx.stage.Window;
@@ -177,7 +178,41 @@ public final class KeyStoreDialogs {
             nodePrivateKeyPem.setEditable(false);
             nodePrivateKeyPem.setWrapText(true);
             nodePrivateKeyPem.setPrefRowCount(5);
+
+            Button btnShowPrivateKey = new Button("Show Private Key");
+            btnShowPrivateKey.setOnAction(evt -> {
+                Optional<String> password = Dialogs.input(owner)
+                        .title("Unlock Private Key")
+                        .header("Enter the password to unlock the private key.")
+                        .inputPassword("password", "Password", () -> keyStore.password())
+                        .showAndWait()
+                        .map(r -> r.get("password").toString());
+
+                password.ifPresent(p -> {
+                    try {
+                        java.security.Key key = ks.getKey(alias, p.toCharArray());
+                        if (key instanceof java.security.PrivateKey pk) {
+                            nodePrivateKeyPem.setText(KeyUtil.toPem(pk));
+                        } else {
+                            Dialogs.alert(owner, Alert.AlertType.ERROR)
+                                    .title("Error")
+                                    .header("Could not retrieve private key.")
+                                    .text("The entry with alias '%s' is not a private key.", alias)
+                                    .showAndWait();
+                        }
+                    } catch (Exception e) {
+                        LOG.warn("Could not retrieve private key for '{}'", alias, e);
+                        Dialogs.alert(owner, Alert.AlertType.ERROR)
+                                .title("Error")
+                                .header("Could not retrieve private key.")
+                                .text("Check if the password is correct: %s", e.getMessage())
+                                .showAndWait();
+                    }
+                });
+            });
+
             builder.node("Private Key", nodePrivateKeyPem);
+            builder.node("", btnShowPrivateKey);
 
             // show certificate chain
             try {
