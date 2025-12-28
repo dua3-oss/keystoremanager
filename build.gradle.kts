@@ -53,6 +53,7 @@ object Meta {
 
 application {
     mainClass = "com.dua3.app.keystoremanager.Main"
+    applicationDefaultJvmArgs = listOf("--enable-native-access=javafx.graphics,ALL-UNNAMED")
 }
 
 graalvmNative {
@@ -92,7 +93,7 @@ jlink {
         name = "keystoremanager"
         // mainClass is taken from the application plugin; set explicitly for clarity
         mainClass.set("com.dua3.app.keystoremanager.Main")
-        jvmArgs = listOf("-Dprism.allowhidpi=true", "--enable-native-access=javafx.graphics")
+        jvmArgs = listOf("-Dprism.allowhidpi=true", "--enable-native-access=javafx.graphics,ALL-UNNAMED")
     }
 
     // jpackage configuration for native bundles and app image
@@ -107,7 +108,7 @@ jlink {
         imageName = "KeystoreManager"
 
         // Common runtime options
-        jvmArgs = listOf("-Dprism.allowhidpi=true", "--enable-native-access=javafx.graphics")
+        jvmArgs = listOf("-Dprism.allowhidpi=true", "--enable-native-access=javafx.graphics,ALL-UNNAMED")
 
         // Users can pass platform-specific options on the command line
 
