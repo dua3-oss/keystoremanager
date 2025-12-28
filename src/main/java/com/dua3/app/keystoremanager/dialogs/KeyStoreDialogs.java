@@ -44,7 +44,6 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
@@ -71,12 +70,11 @@ public final class KeyStoreDialogs {
      * ID of the password input field.
      */
     public static final String ID_PASSWORD = "PASSWORD";
+
     /**
-     * ID of the password repeat input field.
-     * <p>
-     * Note: This one is final as it is for internal use.
+     * A constant string representation of a placeholder value for sensitive information.
      */
-    private static final String ID_PASSWORD_REPEAT = "PASSWORD_REPEAT";
+    public static final String HIDDEN = "[hidden]";
 
     private KeyStoreDialogs() {}
 
@@ -174,41 +172,47 @@ public final class KeyStoreDialogs {
 
             builder.section(1, "Private Key");
 
-            TextArea nodePrivateKeyPem = new TextArea("[hidden]");
+            TextArea nodePrivateKeyPem = new TextArea(HIDDEN);
             nodePrivateKeyPem.setEditable(false);
             nodePrivateKeyPem.setWrapText(true);
             nodePrivateKeyPem.setPrefRowCount(5);
 
             Button btnShowPrivateKey = new Button("Show Private Key");
             btnShowPrivateKey.setOnAction(evt -> {
-                Optional<String> password = Dialogs.input(owner)
-                        .title("Unlock Private Key")
-                        .header("Enter the password to unlock the private key.")
-                        .inputPassword("password", "Password", () -> keyStore.password())
-                        .showAndWait()
-                        .map(r -> r.get("password").toString());
+                if (nodePrivateKeyPem.getText().equals(HIDDEN)) {
+                    Optional<String> password = Dialogs.input(owner)
+                            .title("Unlock Private Key")
+                            .header("Enter the password to unlock the private key.")
+                            .inputPassword("password", "Password", keyStore::password)
+                            .showAndWait()
+                            .map(r -> r.get("password").toString());
 
-                password.ifPresent(p -> {
-                    try {
-                        java.security.Key key = ks.getKey(alias, p.toCharArray());
-                        if (key instanceof java.security.PrivateKey pk) {
-                            nodePrivateKeyPem.setText(KeyUtil.toPem(pk));
-                        } else {
+                    password.ifPresent(p -> {
+                        try {
+                            java.security.Key key = ks.getKey(alias, p.toCharArray());
+                            if (key instanceof java.security.PrivateKey pk) {
+                                nodePrivateKeyPem.setText(KeyUtil.toPem(pk));
+                                btnShowPrivateKey.setText("Hide Private Key");
+                            } else {
+                                Dialogs.alert(owner, Alert.AlertType.ERROR)
+                                        .title("Error")
+                                        .header("Could not retrieve private key.")
+                                        .text("The entry with alias '%s' is not a private key.", alias)
+                                        .showAndWait();
+                            }
+                        } catch (Exception e) {
+                            LOG.warn("Could not retrieve private key for '{}'", alias, e);
                             Dialogs.alert(owner, Alert.AlertType.ERROR)
                                     .title("Error")
                                     .header("Could not retrieve private key.")
-                                    .text("The entry with alias '%s' is not a private key.", alias)
+                                    .text("Check if the password is correct: %s", e.getMessage())
                                     .showAndWait();
                         }
-                    } catch (Exception e) {
-                        LOG.warn("Could not retrieve private key for '{}'", alias, e);
-                        Dialogs.alert(owner, Alert.AlertType.ERROR)
-                                .title("Error")
-                                .header("Could not retrieve private key.")
-                                .text("Check if the password is correct: %s", e.getMessage())
-                                .showAndWait();
-                    }
-                });
+                    });
+                } else {
+                    nodePrivateKeyPem.setText(HIDDEN);
+                    btnShowPrivateKey.setText("Show Private Key");
+                }
             });
 
             builder.node("Private Key", nodePrivateKeyPem);

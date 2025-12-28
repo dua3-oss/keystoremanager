@@ -56,7 +56,10 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.SelectionMode;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import com.dua3.app.keystoremanager.dialogs.ExportDialogs.ExportMode;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -68,6 +71,7 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -102,6 +106,8 @@ public class KeyStorePane extends Pane {
     private static final String LOGO_PATH = "/com/dua3/app/keystoremanager/logo-256.png";
     private static final FxImage LOGO;
     private static final String EMPTY_NAME = "Add Keystore";
+    private static final String ERROR_CREATING_PRIVATE_KEY = "Error creating private key";
+    private static final String ERROR_CREATING_PUBLIC_KEY = "Error creating public key";
 
     private final KeyStoreManager manager;
 
@@ -519,10 +525,25 @@ public class KeyStorePane extends Pane {
                 }
             }
 
-            // save the new keystore to the selected path
-            KeyStoreUtil.saveKeyStoreToFile(newKeyStore, settings.path(), dstPassword);
-            KeyStoreData newKsData = new KeyStoreData(newKeyStore, settings.password(), settings.path());
-            manager.addKeyStoreTab(newKsData);
+            if (settings.mode() == ExportMode.FILE) {
+                // save the new keystore to the selected path
+                KeyStoreUtil.saveKeyStoreToFile(newKeyStore, settings.path(), dstPassword);
+                KeyStoreData newKsData = new KeyStoreData(newKeyStore, settings.password(), settings.path());
+                manager.addKeyStoreTab(newKsData);
+            } else if (settings.mode() == ExportMode.CLIPBOARD) {
+                // copy to clipboard
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                newKeyStore.store(baos, dstPassword);
+                String base64 = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+                ClipboardContent content = new ClipboardContent();
+                content.putString(base64);
+                Clipboard.getSystemClipboard().setContent(content);
+                Dialogs.alert(getScene().getWindow(), Alert.AlertType.INFORMATION)
+                        .title("Export to Clipboard")
+                        .header("Keystore exported to Clipboard")
+                        .text("The keystore has been converted to BASE64 and copied to the clipboard.")
+                        .showAndWait();
+            }
         } catch (GeneralSecurityException | IOException | RuntimeException e) {
             LOG.warn("exception exporting keystore", e);
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR)
@@ -626,16 +647,16 @@ public class KeyStorePane extends Pane {
                     .text("%s", e.getCause().getMessage())
                     .showAndWait();
         } catch (WrappedException e) {
-            LOG.warn("Error creating private key", e.getCause());
+            LOG.warn(ERROR_CREATING_PRIVATE_KEY, e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR)
-                    .title("Error creating private key")
+                    .title(ERROR_CREATING_PRIVATE_KEY)
                     .header("An error occurred while creating the private key.")
                     .text("%s", e.getCause().getMessage())
                     .showAndWait();
         } catch (RuntimeException e) {
             LOG.warn("RuntimeException creating private key", e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR)
-                    .title("Error creating private key")
+                    .title(ERROR_CREATING_PRIVATE_KEY)
                     .header("An error occurred while creating the private key.")
                     .text("%s", e.getMessage())
                     .showAndWait();
@@ -673,16 +694,16 @@ public class KeyStorePane extends Pane {
                     .text("%s", e.getCause().getMessage())
                     .showAndWait();
         } catch (WrappedException e) {
-            LOG.warn("Error creating public key", e.getCause());
+            LOG.warn(ERROR_CREATING_PUBLIC_KEY, e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR)
-                    .title("Error creating public key")
+                    .title(ERROR_CREATING_PUBLIC_KEY)
                     .header("An error occurred while creating the public key.")
                     .text("%s", e.getCause().getMessage())
                     .showAndWait();
         } catch (RuntimeException e) {
             LOG.warn("RuntimeException creating public key", e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR)
-                    .title("Error creating public key")
+                    .title(ERROR_CREATING_PUBLIC_KEY)
                     .header("An error occurred while creating the public key.")
                     .text("%s", e.getMessage())
                     .showAndWait();
