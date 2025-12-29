@@ -21,27 +21,22 @@ package com.dua3.app.keystoremanager.dialogs;
 import com.dua3.app.keystoremanager.KeyStoreData;
 import com.dua3.utility.crypt.KeyStoreType;
 import com.dua3.utility.fx.controls.Dialogs;
-import com.dua3.utility.fx.controls.InputControl;
-import com.dua3.utility.fx.controls.InputControlState;
 import com.dua3.utility.fx.controls.WizardDialogBuilder;
 import com.dua3.utility.lang.LangUtil;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
-import javafx.scene.Node;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public final class ExportDialogs {
     private static final Logger LOG = LogManager.getLogger(ExportDialogs.class);
@@ -52,7 +47,7 @@ public final class ExportDialogs {
     private static final String ID_EXPORT_MODE = "EXPORT_MODE";
     private static final String SELECTED_ALIASES = "SELECTED_ALIASES";
     private static final String ITEMS_TO_EXPORT = "Select Items to export";
-    private static final String KEYSTORE_SETTINGS = "Select target kKeystore location";
+    private static final String KEYSTORE_SETTINGS = "Select target Keystore location";
 
     public enum ExportMode {
         FILE("Export to File"),
@@ -63,56 +58,10 @@ public final class ExportDialogs {
         @Override public String toString() { return label; }
     }
 
-    public record ExportSettings(ExportMode mode, Path path, KeyStoreType type, String password, Map<String, KeyStoreExportSelctionInput.ExportChoice> selection) {}
+    public record ExportSettings(ExportMode mode, @Nullable Path path, KeyStoreType type, String password, Map<String, KeyStoreExportSelctionInput.ExportChoice> selection) {}
 
     private ExportDialogs() {}
     
-    /**
-     * A custom input control that provides a list of radio buttons for selecting an option.
-     *
-     * @param <T> the type of the options
-     */
-    private static class RadioList<T> implements InputControl<T> {
-        private final VBox vbox;
-        private final ObjectProperty<T> value = new SimpleObjectProperty<>();
-        private final InputControlState<T> state;
-
-        public RadioList(List<T> options, T defaultValue) {
-            vbox = new VBox(5);
-            ToggleGroup group = new ToggleGroup();
-            for (T option : options) {
-                RadioButton rb = new RadioButton(option.toString());
-                rb.setToggleGroup(group);
-                rb.setUserData(option);
-                if (option.equals(defaultValue)) {
-                    rb.setSelected(true);
-                    value.set(defaultValue);
-                }
-                vbox.getChildren().add(rb);
-            }
-            group.selectedToggleProperty().addListener((obs, old, nw) -> {
-                if (nw != null) {
-                    value.set((T) nw.getUserData());
-                }
-            });
-            state = new InputControlState<>(value, () -> defaultValue);
-        }
-
-        @Override public Node node() { return vbox; }
-        @Override public InputControlState<T> state() { return state; }
-    }
-
-    /**
-     * A custom input control that provides vertical space.
-     */
-    private static class SpaceControl implements InputControl<Void> {
-        private final Region region = new Region();
-        private final InputControlState<Void> state = new InputControlState<>(new SimpleObjectProperty<>(), () -> null);
-        public SpaceControl(double height) { region.setPrefHeight(height); }
-        @Override public Node node() { return region; }
-        @Override public InputControlState<Void> state() { return state; }
-    }
-
     public static Optional<ExportSettings> showExportDialog(
             Window owner,
             KeyStoreData keystore
@@ -131,22 +80,56 @@ public final class ExportDialogs {
                 .addInput(SELECTED_ALIASES, Map.class, FXCollections::observableHashMap, keyStoreExportSelectionInput)
         );
 
-        // where to write the keystore to
-        RadioList<ExportMode> modeInput = new RadioList<>(List.of(ExportMode.values()).reversed(), ExportMode.FILE);
+        AtomicReference<@Nullable ExportMode> exportMode = new AtomicReference<>(null);
+        AtomicReference<@Nullable Path> targetFolder = new AtomicReference<>(null);
+        AtomicReference<@Nullable String> keystoreName = new AtomicReference<>(null);
+        Function<@Nullable Object, Optional<String>> velidateExportSettings = ignored ->
+                switch (exportMode.get()) {
+                    case null -> Optional.of("Select export mode.");
+                    case CLIPBOARD -> Optional.empty();
+                    case FILE -> {
+                        if (targetFolder.get() == null) {
+                            yield Optional.of("Select the target folder.");
+                        }
+                        if (keystoreName.get() == null) {
+                            yield Optional.of("Select the keystore name.");
+                        }
+                        yield Optional.empty();
+                    }
+                };
         builder.page(KEYSTORE_SETTINGS, Dialogs.inputDialogPane()
                 .header("Select where to store the new keystore and provide a password for it.")
                 .inputComboBox(ID_KEYSTORE_TYPE, "Type", () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.values()))
                 .inputPasswordWithVerification(ID_KEYSTORE_PASSWORD, "Password", "Repeat Password")
-                .addInput("space", Void.class, () -> null, new SpaceControl(20))
-                .addInput(ID_EXPORT_MODE, ExportMode.class, () -> ExportMode.FILE, modeInput)
+                .inputRadioList(
+                        ID_EXPORT_MODE,
+                        "Export Mode",
+                        () -> ExportMode.CLIPBOARD,
+                        ExportMode.class,
+                        List.of(ExportMode.values()),
+                        value -> {
+                            exportMode.set(value);
+                            Optional<String> result = velidateExportSettings.apply(value);
+                            LOG.trace("Export Mode - validateExportSettings: {}", result);
+                            return result;
+                        }
+                )
                 .inputFolder(ID_KEYSTORE_FOLDER, "Target Folder", keystore.path()::getParent, true,
-                        v -> modeInput.value.get() == ExportMode.FILE && v == null
-                                ? Optional.of("Target folder is required.")
-                                : Optional.empty())
+                        value -> {
+                            targetFolder.set(value);
+                            Optional<String> result = velidateExportSettings.apply(value);
+                            LOG.trace("Target Folder - validateExportSettings: {}", result);
+                            return result;
+                        }
+                )
                 .inputString(ID_KEYSTORE_NAME, "Keystore name", () -> null,
-                        v -> modeInput.value.get() == ExportMode.FILE && (v == null || v.isBlank())
-                                ? Optional.of("Keystore name is required.")
-                                : Optional.empty())
+                        value -> {
+                            keystoreName.set(value);
+                            Optional<String> result = velidateExportSettings.apply(value);
+                            LOG.trace("Keystore name - validateExportSettings: {}", result);
+                            return result;
+                        }
+                )
         );
 
         // show the wizard

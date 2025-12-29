@@ -142,6 +142,9 @@ public class KeyStoreExportSelctionInput implements InputControl {
         table.getColumns().setAll(colAlias, colType, colExport);
         table.setItems(buildRows(keystore));
 
+        double width = table.getColumns().stream().mapToDouble(TableColumn::getWidth).sum();
+        table.setMinWidth(width);
+
         return table;
     }
 

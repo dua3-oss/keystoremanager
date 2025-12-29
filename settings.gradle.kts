@@ -39,7 +39,7 @@ dependencyResolutionManagement {
             plugin("forbiddenapis", "de.thetaphi.forbiddenapis").version("3.10")
 
             version("bouncycastle", "1.83")
-            version("dua3-utility", "20.3.0")
+            version("dua3-utility", "20.3.1-SNAPSHOT")
             version("ikonli", "12.4.0")
             version("jspecify", "1.0.0")
             version("junit-bom", "6.0.1")
@@ -81,8 +81,8 @@ dependencyResolutionManagement {
     repositories {
 
         // Maven Central Repository
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
 
         if (isReleaseCandidate) {
             println("release candidate version detected, adding Maven staging repositories")
