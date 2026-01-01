@@ -105,5 +105,10 @@
     "allDeclaredMethods": true,
     "allPublicFields": true,
     "allDeclaredFields": true
+  },
+  {
+    "name": "com.dua3.app.keystoremanager.ApplicationI18NProvider",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
   }
 ]

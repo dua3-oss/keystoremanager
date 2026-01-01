@@ -12,7 +12,33 @@
       },
       {
         "pattern": "com/dua3/utility/fx/.*\\.css"
+      },
+      {
+        "pattern": "com/dua3/utility/fx/messages.*\\.properties"
+      },
+      {
+        "pattern": "com/dua3/utility/messages.*\\.properties"
+      },
+      {
+        "pattern": "com/dua3/messages.*\\.properties"
+      },
+      {
+        "pattern": "dua3/keystoremanager.*\\.properties"
       }
     ]
-  }
+  },
+  "bundles": [
+    {
+      "name": "dua3.keystoremanager"
+    },
+    {
+      "name": "com.dua3.utility.fx.messages"
+    },
+    {
+      "name": "com.dua3.utility.messages"
+    },
+    {
+      "name": "com.dua3.messages"
+    }
+  ]
 }
