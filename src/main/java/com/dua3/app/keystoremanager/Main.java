@@ -19,6 +19,7 @@
 package com.dua3.app.keystoremanager;
 
 import com.dua3.utility.fx.FxLauncher;
+import com.dua3.utility.i18n.I18N;
 
 /**
  * The Main class serves as the entry point of the application.
@@ -33,14 +34,15 @@ public final class Main {
      * @param args command-line arguments passed to the application
      */
     public static void main(String[] args) {
+        I18N i18n = I18N.getInstance();
         FxLauncher.launchApplication(
                 "com.dua3.app.keystoremanager.KeyStoreManager",
                 args,
-                "Keystore Manager",
+                i18n.get("dua3.keystoremanager.main.title"),
                 "0.0.1",
-                "©2025 Axel Howind",
+                i18n.get("dua3.keystoremanager.main.copyright"),
                 "axh@dua3.com",
-                "A simple Keystore Management Tool."
+                i18n.get("dua3.keystoremanager.main.description")
         );
     }
 }

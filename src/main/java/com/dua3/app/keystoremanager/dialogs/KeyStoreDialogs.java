@@ -20,6 +20,7 @@ package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.app.keystoremanager.KeyStoreData;
 import com.dua3.app.keystoremanager.KeyStoreEntryType;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.crypt.KeyStoreType;
 import com.dua3.utility.crypt.KeyUtil;
 import com.dua3.utility.fx.controls.Dialogs;
@@ -53,6 +54,7 @@ import java.util.function.Supplier;
  */
 public final class KeyStoreDialogs {
     private static final Logger LOG = LogManager.getLogger(KeyStoreDialogs.class);
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
 
     /**
      * ID of the folder input field.
@@ -74,7 +76,7 @@ public final class KeyStoreDialogs {
     /**
      * A constant string representation of a placeholder value for sensitive information.
      */
-    public static final String HIDDEN = "[hidden]";
+    public static final String HIDDEN = I18N.get("dua3.keystoremanager.dialog.details.hidden");
 
     private KeyStoreDialogs() {}
 
@@ -92,11 +94,11 @@ public final class KeyStoreDialogs {
         InputValidatorFactory vf = new InputValidatorFactory(MessageFormatter.standard());
 
         return Dialogs.input(owner)
-                .title("Create Keystore")
-                .inputFile(ID_FOLDER, "Folder", initialFolder, FileDialogMode.DIRECTORY, true, Collections.emptyList(), vf.directory("Select an existing folder"))
-                .inputString(ID_NAME, "Name", () -> "", vf.nonEmpty("Name is required"))
-                .inputComboBox(ID_KEY_TYPE, "Type", () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.valuesReadble()))
-                .inputPasswordWithVerification(ID_PASSWORD, "Password", "Repeat Password")
+                .title(I18N.get("dua3.keystoremanager.dialog.create_keystore.title"))
+                .inputFile(ID_FOLDER, I18N.get("dua3.keystoremanager.dialog.create_keystore.folder"), initialFolder, FileDialogMode.DIRECTORY, true, Collections.emptyList(), vf.directory(I18N.get("dua3.keystoremanager.dialog.create_keystore.folder.select")))
+                .inputString(ID_NAME, I18N.get("dua3.keystoremanager.dialog.create_keystore.name"), () -> "", vf.nonEmpty(I18N.get("dua3.keystoremanager.dialog.create_keystore.name.required")))
+                .inputComboBox(ID_KEY_TYPE, I18N.get("dua3.keystoremanager.dialog.create_keystore.type"), () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.valuesReadble()))
+                .inputPasswordWithVerification(ID_PASSWORD, I18N.get("dua3.keystoremanager.dialog.create_keystore.password"), I18N.get("dua3.keystoremanager.dialog.create_keystore.password.repeat"))
                 .showAndWait();
     }
 

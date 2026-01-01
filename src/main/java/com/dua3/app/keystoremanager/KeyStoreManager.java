@@ -22,6 +22,7 @@ import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
 import com.dua3.app.keystoremanager.dialogs.PemDialogs;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.application.ApplicationUtil;
 import com.dua3.utility.application.UiMode;
 import com.dua3.utility.fx.FxUtil;
@@ -67,6 +68,7 @@ import java.util.prefs.Preferences;
  */
 public class KeyStoreManager extends Application {
     private static final Logger LOG = LogManager.getLogger(KeyStoreManager.class);
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
 
     static {
         ApplicationUtil.initApplicationPreferences(Preferences.userNodeForPackage(KeyStoreManager.class));
@@ -102,8 +104,8 @@ public class KeyStoreManager extends Application {
         Thread.currentThread().setUncaughtExceptionHandler((thread, throwable) -> {
             LOG.error("Uncaught exception on thread {}", thread.getName(), throwable);
             Dialogs.alert(primaryStage, Alert.AlertType.ERROR)
-                    .title("Application Error")
-                    .header("An application error occurred. Please report this error to the developer.")
+                    .title(I18N.get("dua3.keystoremanager.manager.error.title"))
+                    .header(I18N.get("dua3.keystoremanager.manager.error.header"))
                     .text("%s", LangUtil.formatThrowable(throwable))
                     .selectableText(true)
                     .resizable(true)
@@ -117,14 +119,14 @@ public class KeyStoreManager extends Application {
 
         // Create a simple menu bar with a single 'File' menu (no items for now)
         MenuBar menuBar = new MenuBar(
-                new Menu("View", null,
+                new Menu(I18N.get("dua3.keystoremanager.manager.menu.view"), null,
                         Controls.choiceMenu(List.of(UiMode.values()))
-                                .text("Appearance")
+                                .text(I18N.get("dua3.keystoremanager.manager.menu.view.appearance"))
                                 .bind(uiModeProperty)
                                 .build()
                 ),
-                new Menu("Tools", null,
-                        Controls.menuItem().text("Validate PEM…").action(this::verifyPem).build()
+                new Menu(I18N.get("dua3.keystoremanager.manager.menu.tools"), null,
+                        Controls.menuItem().text(I18N.get("dua3.keystoremanager.manager.menu.tools.validate_pem")).action(this::verifyPem).build()
                 )
         );
         if (Platform.isMacOS()) {
@@ -140,7 +142,7 @@ public class KeyStoreManager extends Application {
         Scene scene = new Scene(root, width, Math.round(width / MathUtil.GOLDEN_RATIO));
 
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Keystore Manager");
+        primaryStage.setTitle(I18N.get("dua3.keystoremanager.manager.title"));
         primaryStage.show();
 
         LOG.info("KeyStoreManager started.");
@@ -191,7 +193,7 @@ public class KeyStoreManager extends Application {
 
         LangUtil.checkArg(
                 keyStorePane.getKeyStore().isPresent() || tabs.isEmpty() || tabs.getLast().getContent() == keyStorePane,
-                "Setting content to empty is only allowed for the last tab"
+                I18N.get("dua3.keystoremanager.manager.error.content_changed_precondition")
         );
 
         // assert preconditions

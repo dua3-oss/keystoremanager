@@ -23,6 +23,7 @@ import com.dua3.app.keystoremanager.dialogs.KeyStoreDialogs;
 import com.dua3.app.keystoremanager.dialogs.KeyStoreExportSelctionInput;
 import com.dua3.app.keystoremanager.dialogs.PrivateKeyDialogs;
 import com.dua3.app.keystoremanager.dialogs.SecretKeyDialogs;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.application.ApplicationUtil;
 import com.dua3.utility.crypt.AsymmetricAlgorithm;
 import com.dua3.utility.crypt.CertificateUtil;
@@ -102,12 +103,13 @@ import java.util.stream.Stream;
 public class KeyStorePane extends Pane {
 
     private static final Logger LOG = LogManager.getLogger(KeyStorePane.class);
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
 
     private static final String LOGO_PATH = "/com/dua3/app/keystoremanager/logo-256.png";
     private static final FxImage LOGO;
-    private static final String EMPTY_NAME = "Add Keystore";
-    private static final String ERROR_CREATING_PRIVATE_KEY = "Error creating private key";
-    private static final String ERROR_CREATING_PUBLIC_KEY = "Error creating public key";
+    private static final String EMPTY_NAME = I18N.get("dua3.keystoremanager.pane.empty_name");
+    private static final String ERROR_CREATING_PRIVATE_KEY = I18N.get("dua3.keystoremanager.pane.error.creating_private_key");
+    private static final String ERROR_CREATING_PUBLIC_KEY = I18N.get("dua3.keystoremanager.pane.error.creating_public_key");
 
     private final KeyStoreManager manager;
 
@@ -121,10 +123,10 @@ public class KeyStorePane extends Pane {
     }
 
     private static final FileChooser.ExtensionFilter[] EXTENSION_FILTERS = {
-            new FileChooser.ExtensionFilter("Keystore files", "*.p12", "*.pfx", "*.jks", "*.jceks"),
-            new FileChooser.ExtensionFilter("PKS#12 Keystore files", "*.p12", "*.pfx"),
-            new FileChooser.ExtensionFilter("JKS Keystore files", "*.jks"),
-            new FileChooser.ExtensionFilter("JCEKSKeystore files", "*.jceks")
+            new FileChooser.ExtensionFilter(I18N.get("dua3.keystoremanager.pane.filter.keystore_files"), "*.p12", "*.pfx", "*.jks", "*.jceks"),
+            new FileChooser.ExtensionFilter(I18N.get("dua3.keystoremanager.pane.filter.p12"), "*.p12", "*.pfx"),
+            new FileChooser.ExtensionFilter(I18N.get("dua3.keystoremanager.pane.filter.jks"), "*.jks"),
+            new FileChooser.ExtensionFilter(I18N.get("dua3.keystoremanager.pane.filter.jceks"), "*.jceks")
     };
 
     private @Nullable KeyStoreData keyStore;
@@ -366,13 +368,13 @@ public class KeyStorePane extends Pane {
         double buttonWidth = logo.getImage().getWidth() * 0.48;
         HBox buttons = new HBox(
                 Controls.button()
-                        .text("Create Keystore")
+                        .text(I18N.get("dua3.keystoremanager.pane.button.create_keystore"))
                         .prefWidth(buttonWidth)
                         .action(this::createKeyStore)
                         .build(),
                 Controls.spacer(),
                 Controls.button()
-                        .text("Load Keystore")
+                        .text(I18N.get("dua3.keystoremanager.pane.button.load_keystore"))
                         .prefWidth(buttonWidth)
                         .action(this::loadKeyStore)
                         .build()
@@ -414,11 +416,11 @@ public class KeyStorePane extends Pane {
         // create button bar
         ButtonBar buttonBar = new ButtonBar();
         buttonBar.getButtons().setAll(
-                Controls.button().text("New Secret Key").action(this::newSecretKey).build(),
-                Controls.button().text("New Private Key").action(this::newPrivateKey).build(),
-                Controls.button().text("Export").action(this::export).build(),
-                Controls.button().text("Save").action(this::saveKeyStore).build(),
-                Controls.button().text("Save as ...").action(this::saveKeyStoreAs).build()
+                Controls.button().text(I18N.get("dua3.keystoremanager.pane.menu.add.secret_key")).action(this::newSecretKey).build(),
+                Controls.button().text(I18N.get("dua3.keystoremanager.pane.menu.add.private_key")).action(this::newPrivateKey).build(),
+                Controls.button().text(I18N.get("dua3.keystoremanager.pane.menu.export")).action(this::export).build(),
+                Controls.button().text(I18N.get("dua3.keystoremanager.pane.menu.save")).action(this::saveKeyStore).build(),
+                Controls.button().text(I18N.get("dua3.keystoremanager.pane.menu.save_as")).action(this::saveKeyStoreAs).build()
         );
 
         // create the content pane
