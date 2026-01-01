@@ -17,6 +17,9 @@
         "pattern": "com/dua3/utility/fx/messages.*\\.properties"
       },
       {
+        "pattern": "com/dua3/utility/fx/controls/messages.*\\.properties"
+      },
+      {
         "pattern": "com/dua3/utility/messages.*\\.properties"
       },
       {
@@ -33,6 +36,9 @@
     },
     {
       "name": "com.dua3.utility.fx.messages"
+    },
+    {
+      "name": "com.dua3.utility.fx.controls.messages"
     },
     {
       "name": "com.dua3.utility.messages"
