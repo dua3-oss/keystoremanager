@@ -19,6 +19,7 @@
 package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.utility.crypt.SymmetricAlgorithm;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.InputDialogBuilder;
 import com.dua3.utility.fx.controls.InputResult;
@@ -36,8 +37,7 @@ import java.util.stream.Stream;
  */
 public final class SecretKeyDialogs {
     private static final Logger LOG = LogManager.getLogger(SecretKeyDialogs.class);
-
-    private static final String IS_REQUIRED = " is required.";
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
 
 
     private SecretKeyDialogs() {}
@@ -51,11 +51,11 @@ public final class SecretKeyDialogs {
         /**
          * Represents the alias field in a certificate.
          */
-        ALIAS(ID_ALIAS, "Alias", String.class, true, "Unique identifier for the key"),
+        ALIAS(ID_ALIAS, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.alias.label"), String.class, true, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.alias.description")),
         /**
          * Represents the algorithm to use.
          */
-        ALGORITHM(ID_ALGORITHM, "Algorithm", SymmetricAlgorithm.class, true, "Cryptographic algorithm to use for key generation"),;
+        ALGORITHM(ID_ALGORITHM, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.algorithm.label"), SymmetricAlgorithm.class, true, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.algorithm.description")),;
 
         /**
          * Represents the ID for the certificate field.
@@ -121,8 +121,8 @@ public final class SecretKeyDialogs {
         LOG.debug("Showing new private key dialog.");
 
         InputDialogBuilder builder = Dialogs.input(owner)
-                .title("New Secret Key")
-                .header("Enter secret key details.");
+                .title(I18N.get("dua3.keystoremanager.dialog.new_secret_key.title"))
+                .header(I18N.get("dua3.keystoremanager.dialog.new_secret_key.header"));
 
         // add standard fields
         Stream.of(Fields.values())
@@ -132,13 +132,13 @@ public final class SecretKeyDialogs {
                                 field.id,
                                 field.label,
                                 () -> "",
-                                field.isRequired ? vf.nonBlank(field.label + IS_REQUIRED) : vf.noCheck()
+                                field.isRequired ? vf.nonBlank(I18N.get("dua3.keystoremanager.dialog.new_secret_key.validator.required"), field.label) : vf.noCheck()
                         );
                         case "Integer" -> builder.inputInteger(
                                 field.id,
                                 field.label,
                                 () -> null,
-                                field.isRequired ? vf.nonNull(field.label + IS_REQUIRED) : vf.noCheck()
+                                field.isRequired ? vf.nonNull(I18N.get("dua3.keystoremanager.dialog.new_secret_key.validator.required"), field.label) : vf.noCheck()
                         );
                         default -> {
                             if (field.type.isEnum()) {
@@ -148,7 +148,7 @@ public final class SecretKeyDialogs {
                                         field.label,
                                         () -> null,
                                         (Class<Enum>) field.type,
-                                        vf.nonNull(field.label + IS_REQUIRED)
+                                        vf.nonNull(I18N.get("dua3.keystoremanager.dialog.new_secret_key.validator.required"), field.label)
                                 );
                             } else {
                                 throw new IllegalStateException("Unexpected type: " + field.type.getSimpleName());

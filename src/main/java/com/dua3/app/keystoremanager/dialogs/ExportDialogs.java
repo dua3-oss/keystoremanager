@@ -20,6 +20,7 @@ package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.app.keystoremanager.KeyStoreData;
 import com.dua3.utility.crypt.KeyStoreType;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.WizardDialogBuilder;
 import com.dua3.utility.lang.LangUtil;
@@ -40,18 +41,19 @@ import java.util.function.Function;
 
 public final class ExportDialogs {
     private static final Logger LOG = LogManager.getLogger(ExportDialogs.class);
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
     private static final String ID_KEYSTORE_FOLDER = "KEYSTORE_FOLDER";
     private static final String ID_KEYSTORE_NAME = "KEYSTORE_NAME";
     private static final String ID_KEYSTORE_TYPE = "KEYSTORE_TYPE";
     private static final String ID_KEYSTORE_PASSWORD = "KEYSTORE_PASSWORD";
     private static final String ID_EXPORT_MODE = "EXPORT_MODE";
     private static final String SELECTED_ALIASES = "SELECTED_ALIASES";
-    private static final String ITEMS_TO_EXPORT = "Select Items to export";
-    private static final String KEYSTORE_SETTINGS = "Select target Keystore location";
+    private static final String ITEMS_TO_EXPORT = I18N.get("dua3.keystoremanager.dialog.export.page.items_to_export");
+    private static final String KEYSTORE_SETTINGS = I18N.get("dua3.keystoremanager.dialog.export.page.keystore_settings");
 
     public enum ExportMode {
-        FILE("Export to File"),
-        CLIPBOARD("Copy BASE64 to Clipboard");
+        FILE(I18N.get("dua3.keystoremanager.dialog.export.mode.file")),
+        CLIPBOARD(I18N.get("dua3.keystoremanager.dialog.export.mode.clipboard"));
 
         private final String label;
         ExportMode(String label) { this.label = label; }
@@ -70,13 +72,13 @@ public final class ExportDialogs {
 
         // Create the dialog
         WizardDialogBuilder builder = Dialogs.wizard(owner)
-                .title("Export to new Keystore");
+                .title(I18N.get("dua3.keystoremanager.dialog.export.title"));
 
         // Add a table showing the entries to let the user select what to export
         KeyStoreExportSelctionInput keyStoreExportSelectionInput = new KeyStoreExportSelctionInput(keystore);
 
         builder.page(ITEMS_TO_EXPORT, Dialogs.inputDialogPane()
-                .header("WARNING: Do not export sensitive keys or certificates unless you know exactly what you are doing!")
+                .header(I18N.get("dua3.keystoremanager.dialog.export.header.warning"))
                 .addInput(SELECTED_ALIASES, Map.class, FXCollections::observableHashMap, keyStoreExportSelectionInput)
         );
 
@@ -85,25 +87,25 @@ public final class ExportDialogs {
         AtomicReference<@Nullable String> keystoreName = new AtomicReference<>(null);
         Function<@Nullable Object, Optional<String>> velidateExportSettings = ignored ->
                 switch (exportMode.get()) {
-                    case null -> Optional.of("Select export mode.");
+                    case null -> Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_mode"));
                     case CLIPBOARD -> Optional.empty();
                     case FILE -> {
                         if (targetFolder.get() == null) {
-                            yield Optional.of("Select the target folder.");
+                            yield Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_folder"));
                         }
                         if (keystoreName.get() == null) {
-                            yield Optional.of("Select the keystore name.");
+                            yield Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_name"));
                         }
                         yield Optional.empty();
                     }
                 };
         builder.page(KEYSTORE_SETTINGS, Dialogs.inputDialogPane()
-                .header("Select where to store the new keystore and provide a password for it.")
-                .inputComboBox(ID_KEYSTORE_TYPE, "Type", () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.values()))
-                .inputPasswordWithVerification(ID_KEYSTORE_PASSWORD, "Password", "Repeat Password")
+                .header(I18N.get("dua3.keystoremanager.dialog.export.header.settings"))
+                .inputComboBox(ID_KEYSTORE_TYPE, I18N.get("dua3.keystoremanager.dialog.export.type"), () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.values()))
+                .inputPasswordWithVerification(ID_KEYSTORE_PASSWORD, I18N.get("dua3.keystoremanager.dialog.export.password"), I18N.get("dua3.keystoremanager.dialog.export.password.repeat"))
                 .inputRadioList(
                         ID_EXPORT_MODE,
-                        "Export Mode",
+                        I18N.get("dua3.keystoremanager.dialog.export.mode"),
                         () -> ExportMode.CLIPBOARD,
                         ExportMode.class,
                         List.of(ExportMode.values()),
@@ -114,7 +116,7 @@ public final class ExportDialogs {
                             return result;
                         }
                 )
-                .inputFolder(ID_KEYSTORE_FOLDER, "Target Folder", keystore.path()::getParent, true,
+                .inputFolder(ID_KEYSTORE_FOLDER, I18N.get("dua3.keystoremanager.dialog.export.target_folder"), keystore.path()::getParent, true,
                         value -> {
                             targetFolder.set(value);
                             Optional<String> result = velidateExportSettings.apply(value);
@@ -122,7 +124,7 @@ public final class ExportDialogs {
                             return result;
                         }
                 )
-                .inputString(ID_KEYSTORE_NAME, "Keystore name", () -> null,
+                .inputString(ID_KEYSTORE_NAME, I18N.get("dua3.keystoremanager.dialog.export.keystore_name"), () -> null,
                         value -> {
                             keystoreName.set(value);
                             Optional<String> result = velidateExportSettings.apply(value);

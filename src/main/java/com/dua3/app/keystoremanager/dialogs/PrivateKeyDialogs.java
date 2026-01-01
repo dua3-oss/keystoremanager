@@ -20,6 +20,7 @@ package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.utility.crypt.AsymmetricAlgorithm;
 import com.dua3.utility.crypt.KeyStoreUtil;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.InputDialogBuilder;
 import com.dua3.utility.fx.controls.InputResult;
@@ -44,6 +45,7 @@ import java.util.stream.Stream;
  */
 public final class PrivateKeyDialogs {
     private static final Logger LOG = LogManager.getLogger(PrivateKeyDialogs.class);
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
 
     private PrivateKeyDialogs() {}
 
@@ -56,51 +58,51 @@ public final class PrivateKeyDialogs {
         /**
          * Represents the alias field in a certificate.
          */
-        ALIAS("ALIAS", "Alias", String.class, true, "Unique identifier for the certificate"),
+        ALIAS("ALIAS", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.alias.label"), String.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.alias.description")),
         /**
          * Represents the algorithm to use.
          */
-        ALGORITHM("ALGORITHM", "Algorithm", AsymmetricAlgorithm.class, true, "Cryptographic algorithm to use for key generation"),
+        ALGORITHM("ALGORITHM", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.algorithm.label"), AsymmetricAlgorithm.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.algorithm.description")),
         /**
          * Represents the key size in bits.
          */
-        KEY_SIZE("KEY_SIZE", "Key Size in Bits", Integer.class, true, "Length of the cryptographic key in bits"),
+        KEY_SIZE("KEY_SIZE", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.key_size.label"), Integer.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.key_size.description")),
         /**
          * Represents the number of days for which a certificate is valid.
          */
-        VALID_DAYS("VALID", "Valid Days", Integer.class, true, "Number of days the certificate will remain valid"),
+        VALID_DAYS("VALID", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.valid_days.label"), Integer.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.valid_days.description")),
         /**
          * Represents the ability to sign sub-certificates.
          */
-        ENABLE_CA("ENABLE_CA", "CA Certificate", Boolean.class, true, "Enable this certificate to sign other certificates"),
+        ENABLE_CA("ENABLE_CA", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.enable_ca.label"), Boolean.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.enable_ca.description")),
         /**
          * Represents the "Common Name (CN)" field in a certificate.
          */
-        COMMON_NAME("CN", "Common Name (CN)", String.class, true, "Fully qualified domain name or organization name"),
+        COMMON_NAME("CN", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.common_name.label"), String.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.common_name.description")),
         /**
          * Represents the "Organization" field in a certificate.
          */
-        ORGANIZATION("O", "Organization (O)", String.class, true, "Legal name of the organization"),
+        ORGANIZATION("O", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.organization.label"), String.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.organization.description")),
         /**
          * Represents the Organizational Unit (OU) field in a certificate.
          */
-        ORGANIZATIONAL_UNIT("OU", "Organizational Unit (OU)", String.class, false, "Division or department within the organization"),
+        ORGANIZATIONAL_UNIT("OU", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.organizational_unit.label"), String.class, false, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.organizational_unit.description")),
         /**
          * Represents the Country (C) field in a certificate.
          */
-        COUNTRY("C", "Country (C)", String.class, true, "Two-letter country code"),
+        COUNTRY("C", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.country.label"), String.class, true, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.country.description")),
         /**
          * Represents the State/Province (ST) field in a certificate.
          */
-        STATE("ST", "State/Province (ST)", String.class, false, "State or province name"),
+        STATE("ST", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.state.label"), String.class, false, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.state.description")),
         /**
          * Represents the Locality (L) field in a certificate.
          */
-        LOCALITY("L", "Locality (L)", String.class, false, "City or locality name"),
+        LOCALITY("L", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.locality.label"), String.class, false, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.locality.description")),
         /**
          * Represents the "EMAIL" field in a certificate.
          */
-        EMAIL("EMAIL", "Email Address", String.class, false, "Contact email address");
+        EMAIL("EMAIL", I18N.get("dua3.keystoremanager.dialog.new_private_key.field.email.label"), String.class, false, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.email.description"));
 
         /**
          * Represents the ID for the certificate field.
@@ -170,17 +172,17 @@ public final class PrivateKeyDialogs {
             parentAliases.addAll(KeyStoreUtil.getCaAliases(ks));
         } catch (KeyStoreException e) {
             Dialogs.alert(owner, Alert.AlertType.ERROR)
-                    .title("Could not retrieve CA certificates")
-                    .header("An error occurred while retrieving CA certificates.")
+                    .title(I18N.get("dua3.keystoremanager.dialog.new_private_key.error.retrieve_aliases.title"))
+                    .header(I18N.get("dua3.keystoremanager.dialog.new_private_key.error.retrieve_aliases.header"))
                     .text(e.getMessage())
                     .showAndWait();
             return Optional.empty();
         }
 
         InputDialogBuilder builder = Dialogs.input(owner)
-                .title("New Certificate")
-                .header("Enter certificate details.")
-                .inputComboBox(ID_PARENT, "Parent Certificate", () -> aliasStandAlone, String.class, parentAliases);
+                .title(I18N.get("dua3.keystoremanager.dialog.new_private_key.title"))
+                .header(I18N.get("dua3.keystoremanager.dialog.new_private_key.header"))
+                .inputComboBox(ID_PARENT, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.parent.label"), () -> aliasStandAlone, String.class, parentAliases);
 
         // add fields
         Stream.of(Fields.values())
@@ -192,7 +194,7 @@ public final class PrivateKeyDialogs {
                                 AsymmetricAlgorithm.class,
                                 algorithm -> {
                                     keySizes.setAll(algorithm == null ? Collections.emptyList() : algorithm.getSupportedKeySizes());
-                                    return algorithm == null ? Optional.of("Select an algorithm.") : Optional.empty();
+                                    return algorithm == null ? Optional.of(I18N.get("dua3.keystoremanager.dialog.new_private_key.validator.select_algorithm")) : Optional.empty();
                                 });
                         default -> {
                             switch (field.type.getName()) {
@@ -200,13 +202,13 @@ public final class PrivateKeyDialogs {
                                         field.id,
                                         field.label,
                                         () -> "",
-                                        field.isRequired ? vf.nonBlank(field.label + " is required.") : vf.noCheck()
+                                        field.isRequired ? vf.nonBlank(I18N.get("dua3.keystoremanager.dialog.new_private_key.validator.required"), field.label) : vf.noCheck()
                                 );
                                 case "java.lang.Integer" -> builder.inputInteger(
                                         field.id,
                                         field.label,
                                         () -> null,
-                                        field.isRequired ? vf.nonNull(field.label + " is required.") : vf.noCheck()
+                                        field.isRequired ? vf.nonNull(I18N.get("dua3.keystoremanager.dialog.new_private_key.validator.required"), field.label) : vf.noCheck()
                                 );
                                 case "java.lang.Boolean" -> builder.inputCheckBox(
                                         field.id,

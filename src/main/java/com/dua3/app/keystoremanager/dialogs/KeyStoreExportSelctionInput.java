@@ -20,6 +20,7 @@ package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.app.keystoremanager.KeyStoreData;
 import com.dua3.app.keystoremanager.KeyStoreEntryType;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.crypt.KeyStoreUtil;
 import com.dua3.utility.fx.controls.InputControl;
 import com.dua3.utility.fx.controls.InputControlState;
@@ -52,6 +53,7 @@ import java.util.Map;
 
 public class KeyStoreExportSelctionInput implements InputControl {
     private static final Logger LOG = LogManager.getLogger(KeyStoreExportSelctionInput.class);
+    private static final I18N i18n = com.dua3.utility.i18n.I18N.getInstance();
     
     /**
      * An enumeration representing the export options for a key or key pair.
@@ -64,21 +66,21 @@ public class KeyStoreExportSelctionInput implements InputControl {
          * Represents the choice to disable export functionality for a key or key pair.
          * Indicates that no export action should be performed.
          */
-        NONE("Do not Export"),
+        NONE(i18n.get("dua3.keystoremanager.dialog.export.selection.choice.none")),
         /**
          * Specifies the option to export only the public key of a key pair.
          */
-        PUBLIC_ONLY("Public Key"),
+        PUBLIC_ONLY(i18n.get("dua3.keystoremanager.dialog.export.selection.choice.public_only")),
         /**
          * Represents the option to export both the public and private keys in the
          * key or key pair export process.
          */
-        PUBLIC_AND_PRIVATE("Public and Private Keys"),
+        PUBLIC_AND_PRIVATE(i18n.get("dua3.keystoremanager.dialog.export.selection.choice.public_and_private")),
         /**
          * Represents an export option for keys or key pairs.
          * Specifically, this option corresponds to exporting the key material.
          */
-        EXPORT("Export");
+        EXPORT(i18n.get("dua3.keystoremanager.dialog.export.selection.choice.export"));
 
         /**
          * The value to return in toString().
@@ -126,15 +128,15 @@ public class KeyStoreExportSelctionInput implements InputControl {
         TableView<Row> table = new TableView<>();
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
-        TableColumn<Row, String> colAlias = new TableColumn<>("Item Name");
+        TableColumn<Row, String> colAlias = new TableColumn<>(i18n.get("dua3.keystoremanager.dialog.export.selection.column.item_name"));
         colAlias.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().alias()));
         colAlias.setPrefWidth(200);
 
-        TableColumn<Row, KeyStoreEntryType> colType = new TableColumn<>("Type");
+        TableColumn<Row, KeyStoreEntryType> colType = new TableColumn<>(i18n.get("dua3.keystoremanager.dialog.export.selection.column.type"));
         colType.setCellValueFactory(cd -> new SimpleObjectProperty<>(cd.getValue().type()));
         colType.setPrefWidth(140);
 
-        TableColumn<Row, ExportChoice> colExport = new TableColumn<>("Export");
+        TableColumn<Row, ExportChoice> colExport = new TableColumn<>(i18n.get("dua3.keystoremanager.dialog.export.selection.column.export"));
         colExport.setCellValueFactory(cd -> cd.getValue().choice());
         colExport.setCellFactory(col -> new ExportChoiceCell());
         colExport.setPrefWidth(500);

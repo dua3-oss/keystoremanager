@@ -32,6 +32,7 @@ import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.lang.LangUtil;
 import com.dua3.utility.lang.Platform;
 import com.dua3.utility.math.MathUtil;
+import com.dua3.utility.text.MessageFormatter;
 import javafx.application.Application;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
@@ -103,16 +104,16 @@ public class KeyStoreManager extends Application {
 
         Thread.currentThread().setUncaughtExceptionHandler((thread, throwable) -> {
             LOG.error("Uncaught exception on thread {}", thread.getName(), throwable);
-            Dialogs.alert(primaryStage, Alert.AlertType.ERROR)
-                    .title(I18N.get("dua3.keystoremanager.manager.error.title"))
-                    .header(I18N.get("dua3.keystoremanager.manager.error.header"))
-                    .text("%s", LangUtil.formatThrowable(throwable))
+            Dialogs.alert(primaryStage, Alert.AlertType.ERROR, MessageFormatter.i18n())
+                    .title("dua3.keystoremanager.manager.error.title")
+                    .header("dua3.keystoremanager.manager.error.header")
+                    .text("{}", LangUtil.formatThrowable(throwable))
                     .selectableText(true)
                     .resizable(true)
                     .showAndWait();
         });
 
-        // open initial empty tab
+        // open the initially empty tab
         addKeyStoreTab(null);
 
         int width = 1000;
@@ -205,7 +206,7 @@ public class KeyStoreManager extends Application {
             addKeyStoreTab(null);
         }
 
-        // make tab closeable if not the empty tab
+        // make the tab closeable if it is not the empty tab
         Tab last = tabs.getLast();
         tabs.forEach(t -> t.setClosable(t != last));
 

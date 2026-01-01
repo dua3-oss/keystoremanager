@@ -41,4 +41,5 @@ open module keystoremanager {
     requires javafx.base;
     
     provides com.dua3.utility.i18n.I18NProvider with com.dua3.app.keystoremanager.ApplicationI18NProvider;
+    uses com.dua3.utility.i18n.I18NProvider;
 }

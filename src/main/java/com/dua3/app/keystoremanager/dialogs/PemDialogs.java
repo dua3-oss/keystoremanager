@@ -19,6 +19,7 @@
 package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.utility.crypt.PemData;
+import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.fx.controls.ButtonDef;
 import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.InputDialogPane;
@@ -34,17 +35,18 @@ import java.util.Objects;
 
 public class PemDialogs {
     private static final Logger LOG = LogManager.getLogger(PemDialogs.class);
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
 
     public static void showVerifyPemtKeyDialog(Window owner) {
         TextField validationResult = new TextField("?");
         validationResult.setEditable(false);
 
         Dialogs.input(owner)
-                .title("Validate PEM")
-                .section(1, "PEM Data")
-                .inputText("pem", "PEM Content", () -> "")
-                .inputPassword("passphrase", "Passphrase", () -> "")
-                .section(1, "Validation Results")
+                .title(I18N.get("dua3.keystoremanager.dialog.pem.title"))
+                .section(1, I18N.get("dua3.keystoremanager.dialog.pem.section.pem_data"))
+                .inputText("pem", I18N.get("dua3.keystoremanager.dialog.pem.content"), () -> "")
+                .inputPassword("passphrase", I18N.get("dua3.keystoremanager.dialog.pem.passphrase"), () -> "")
+                .section(1, I18N.get("dua3.keystoremanager.dialog.pem.section.validation_results"))
                 .node("validationResult", validationResult)
                 .buttons(
                         ButtonDef.of(
@@ -75,7 +77,7 @@ public class PemDialogs {
             return fmt.toString();
         } catch (PemData.PemException e) {
             LOG.warn("Exception while validating PEM", e);
-            return "The PEM could not be parsed: " + e.getMessage();
+            return I18N.format("dua3.keystoremanager.dialog.pem.error.parse_failed", e.getMessage());
         }
     }
 }

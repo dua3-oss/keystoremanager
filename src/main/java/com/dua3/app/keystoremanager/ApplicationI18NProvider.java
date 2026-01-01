@@ -8,6 +8,6 @@ import java.util.Locale;
 public class ApplicationI18NProvider implements I18NProvider {
     @Override
     public I18N i18n() {
-        return I18N.create("dua3.keystoremanager", Locale.ENGLISH);
+        return I18N.create("dua3.keystoremanager", Locale.getDefault());
     }
 }
