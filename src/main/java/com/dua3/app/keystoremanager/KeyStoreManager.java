@@ -118,10 +118,13 @@ public class KeyStoreManager extends Application {
         // Create a simple menu bar with a single 'File' menu (no items for now)
         MenuBar menuBar = new MenuBar(
                 new Menu("View", null,
-                        Controls.choiceMenu("Appearance", uiModeProperty, List.of(UiMode.values()))
+                        Controls.choiceMenu(List.of(UiMode.values()))
+                                .text("Appearance")
+                                .bind(uiModeProperty)
+                                .build()
                 ),
                 new Menu("Tools", null,
-                        Controls.menuItem("Validate PEM…", this::verifyPem)
+                        Controls.menuItem().text("Validate PEM…").action(this::verifyPem).build()
                 )
         );
         if (Platform.isMacOS()) {
