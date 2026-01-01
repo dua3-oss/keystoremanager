@@ -153,7 +153,8 @@ jlink {
                         "--win-signing-key-store-pass", ksp,
                         "--win-signing-key-store-type", "pkcs12",
                         "--win-signing-key-alias", alias
-                    ))
+                    )
+                )
                 val signOpts = (project.findProperty("win.signingOptions") as String?)?.trim()
                 if (!signOpts.isNullOrEmpty()) {
                     // pass additional options to the signtool invocation (e.g. timestamp server)

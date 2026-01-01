@@ -33,9 +33,13 @@ import java.util.Formatter;
 import java.util.Map;
 import java.util.Objects;
 
-public class PemDialogs {
+public final class PemDialogs {
     private static final Logger LOG = LogManager.getLogger(PemDialogs.class);
     private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
+
+    private PemDialogs() {
+        // utility class
+    }
 
     public static void showVerifyPemtKeyDialog(Window owner) {
         TextField validationResult = new TextField("?");

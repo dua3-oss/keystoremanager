@@ -20,7 +20,7 @@ package com.dua3.app.keystoremanager;
 
 import com.dua3.app.keystoremanager.dialogs.ExportDialogs;
 import com.dua3.app.keystoremanager.dialogs.KeyStoreDialogs;
-import com.dua3.app.keystoremanager.dialogs.KeyStoreExportSelctionInput;
+import com.dua3.app.keystoremanager.dialogs.KeyStoreExportSelectionInput;
 import com.dua3.app.keystoremanager.dialogs.PrivateKeyDialogs;
 import com.dua3.app.keystoremanager.dialogs.SecretKeyDialogs;
 import com.dua3.utility.i18n.I18N;
@@ -132,7 +132,6 @@ public class KeyStorePane extends Pane {
     private @Nullable KeyStoreData keyStore;
     private final StringProperty name = new SimpleStringProperty(this, "name", "");
     private final ObservableList<EntryRow> keyStoreItems = FXCollections.observableArrayList();
-    private TableView<EntryRow> entriesTable;
 
     /**
      * Constructs a new instance of KeyStorePane with the provided KeyStore data.
@@ -333,7 +332,7 @@ public class KeyStorePane extends Pane {
                                                         .showAndWait();
                                             } catch (GeneralSecurityException e) {
                                                 LOG.warn("Security error loading KeyStore", e);
-                                                Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR,  MessageFormatter.i18n())
+                                                Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                                         .title("dua3.keystoremanager.error.loading.keystore")
                                                         .header("dua3.keystoremanager.keystore.load.security.error")
                                                         .text(e.getMessage())
@@ -411,7 +410,7 @@ public class KeyStorePane extends Pane {
         name.setValue(keyStore.path().getFileName().toString());
 
         // create table of keystore entries
-        entriesTable = createEntriesTable(keyStore);
+        TableView<EntryRow> entriesTable = createEntriesTable(keyStore);
 
         // create button bar
         ButtonBar buttonBar = new ButtonBar();
@@ -457,7 +456,7 @@ public class KeyStorePane extends Pane {
 
             for (var entry : settings.selection().entrySet()) {
                 String alias = entry.getKey();
-                KeyStoreExportSelctionInput.ExportChoice choice = entry.getValue();
+                KeyStoreExportSelectionInput.ExportChoice choice = entry.getValue();
                 switch (choice) {
                     case NONE -> {
                         // do nothing
@@ -499,20 +498,23 @@ public class KeyStorePane extends Pane {
                         // - For other types: best-effort certificate export
                         if (srcKeyStore.isKeyEntry(alias)) {
                             KeyStore.Entry e = srcKeyStore.getEntry(alias, new KeyStore.PasswordProtection(srcPassword));
-                            if (e instanceof KeyStore.SecretKeyEntry ske) {
-                                // Re-wrap the secret key with the destination keystore password
-                                newKeyStore.setEntry(alias, new KeyStore.SecretKeyEntry(ske.getSecretKey()), new KeyStore.PasswordProtection(dstPassword));
-                            } else if (e instanceof KeyStore.PrivateKeyEntry) {
-                                // For private keys, EXPORT in the UI is not offered; fall back to certificate only for safety
-                                Certificate cert = srcKeyStore.getCertificate(alias);
-                                if (cert != null) {
-                                    newKeyStore.setCertificateEntry(alias, cert);
+                            switch (e) {
+                                case KeyStore.SecretKeyEntry ske ->
+                                    // Re-wrap the secret key with the destination keystore password
+                                        newKeyStore.setEntry(alias, new KeyStore.SecretKeyEntry(ske.getSecretKey()), new KeyStore.PasswordProtection(dstPassword));
+                                case KeyStore.PrivateKeyEntry privateKeyEntry -> {
+                                    // For private keys, EXPORT in the UI is not offered; fall back to certificate only for safety
+                                    Certificate cert = srcKeyStore.getCertificate(alias);
+                                    if (cert != null) {
+                                        newKeyStore.setCertificateEntry(alias, cert);
+                                    }
                                 }
-                            } else {
-                                // Unknown key entry type; attempt certificate copy
-                                Certificate cert = srcKeyStore.getCertificate(alias);
-                                if (cert != null) {
-                                    newKeyStore.setCertificateEntry(alias, cert);
+                                case null, default -> {
+                                    // Unknown key entry type; attempt certificate copy
+                                    Certificate cert = srcKeyStore.getCertificate(alias);
+                                    if (cert != null) {
+                                        newKeyStore.setCertificateEntry(alias, cert);
+                                    }
                                 }
                             }
                         } else if (srcKeyStore.isCertificateEntry(alias)) {

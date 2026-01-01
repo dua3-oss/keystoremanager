@@ -25,7 +25,6 @@ import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.WizardDialogBuilder;
 import com.dua3.utility.lang.LangUtil;
 import javafx.collections.FXCollections;
-import javafx.stage.Modality;
 import javafx.stage.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,7 +59,7 @@ public final class ExportDialogs {
         @Override public String toString() { return label; }
     }
 
-    public record ExportSettings(ExportMode mode, @Nullable Path path, KeyStoreType type, String password, Map<String, KeyStoreExportSelctionInput.ExportChoice> selection) {}
+    public record ExportSettings(ExportMode mode, @Nullable Path path, KeyStoreType type, String password, Map<String, KeyStoreExportSelectionInput.ExportChoice> selection) {}
 
     private ExportDialogs() {}
     
@@ -75,7 +74,7 @@ public final class ExportDialogs {
                 .title(I18N.get("dua3.keystoremanager.dialog.export.title"));
 
         // Add a table showing the entries to let the user select what to export
-        KeyStoreExportSelctionInput keyStoreExportSelectionInput = new KeyStoreExportSelctionInput(keystore);
+        KeyStoreExportSelectionInput keyStoreExportSelectionInput = new KeyStoreExportSelectionInput(keystore);
 
         builder.page(ITEMS_TO_EXPORT, Dialogs.inputDialogPane()
                 .header(I18N.get("dua3.keystoremanager.dialog.export.header.warning"))
@@ -151,8 +150,8 @@ public final class ExportDialogs {
                     }
 
                     // extract selected entries
-                    Map<String, KeyStoreExportSelctionInput.ExportChoice> selectedAliases =
-                            (Map<String, KeyStoreExportSelctionInput.ExportChoice>) LangUtil.getOrThrow(
+                    Map<String, KeyStoreExportSelectionInput.ExportChoice> selectedAliases =
+                            (Map<String, KeyStoreExportSelectionInput.ExportChoice>) LangUtil.getOrThrow(
                                     (Map<String, Object>) LangUtil.getOrThrow(result, ITEMS_TO_EXPORT),
                                     SELECTED_ALIASES
                             );

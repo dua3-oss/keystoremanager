@@ -55,7 +55,7 @@ public final class SecretKeyDialogs {
         /**
          * Represents the algorithm to use.
          */
-        ALGORITHM(ID_ALGORITHM, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.algorithm.label"), SymmetricAlgorithm.class, true, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.algorithm.description")),;
+        ALGORITHM(ID_ALGORITHM, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.algorithm.label"), SymmetricAlgorithm.class, true, I18N.get("dua3.keystoremanager.dialog.new_secret_key.field.algorithm.description"));
 
         /**
          * Represents the ID for the certificate field.

@@ -51,8 +51,8 @@ import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KeyStoreExportSelctionInput implements InputControl {
-    private static final Logger LOG = LogManager.getLogger(KeyStoreExportSelctionInput.class);
+public class KeyStoreExportSelectionInput implements InputControl {
+    private static final Logger LOG = LogManager.getLogger(KeyStoreExportSelectionInput.class);
     private static final I18N i18n = com.dua3.utility.i18n.I18N.getInstance();
     
     /**
@@ -105,7 +105,7 @@ public class KeyStoreExportSelctionInput implements InputControl {
     // listeners to keep value map in sync with row choices
     private final Map<Row, ChangeListener<ExportChoice>> rowChoiceListeners = new HashMap<>();
 
-    public KeyStoreExportSelctionInput(KeyStoreData keystore) throws GeneralSecurityException {
+    public KeyStoreExportSelectionInput(KeyStoreData keystore) throws GeneralSecurityException {
         this.state = new InputControlState<>(value, FXCollections::observableHashMap);
         if (this.value.get() == null) {
             this.value.set(FXCollections.observableHashMap());

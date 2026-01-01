@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: GPL-3.0-only
  * Copyright (c) 2025 Axel Howind
  */
+
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
@@ -39,7 +40,7 @@ open module keystoremanager {
     requires org.bouncycastle.pkix;
     requires org.jspecify;
     requires javafx.base;
-    
+
     provides com.dua3.utility.i18n.I18NProvider with com.dua3.app.keystoremanager.ApplicationI18NProvider;
     uses com.dua3.utility.i18n.I18NProvider;
 }

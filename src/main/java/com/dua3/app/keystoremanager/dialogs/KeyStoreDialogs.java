@@ -143,7 +143,7 @@ public final class KeyStoreDialogs {
                     builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.key_size"), I18N.get("dua3.keystoremanager.dialog.details.key_size.format"), keySize);
                 }
 
-                if (cert instanceof X509Certificate x509Cert){
+                if (cert instanceof X509Certificate x509Cert) {
                     builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.valid_from"), "%s", x509Cert.getNotBefore());
                     builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.valid_until"), "%s", x509Cert.getNotAfter());
 
@@ -223,7 +223,7 @@ public final class KeyStoreDialogs {
             // show certificate chain
             try {
                 java.security.cert.Certificate[] chain = ks.getCertificateChain(alias);
-                if ((chain == null || chain.length == 0)  && cert != null) {
+                if ((chain == null || chain.length == 0) && cert != null) {
                     chain = new java.security.cert.Certificate[]{cert};
                 }
 

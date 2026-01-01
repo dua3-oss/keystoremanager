@@ -27,6 +27,8 @@ import com.dua3.utility.i18n.I18N;
  * the KeyStore Manager application.
  */
 public final class Main {
+    private Main() {}
+
     /**
      * The main method serves as the entry point of the application.
      * It launches the KeyStore Manager application using the FxLauncher framework.
