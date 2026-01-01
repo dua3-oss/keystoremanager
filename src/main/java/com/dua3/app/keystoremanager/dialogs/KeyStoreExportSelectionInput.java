@@ -51,7 +51,7 @@ import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KeyStoreExportSelectionInput implements InputControl {
+public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<String, KeyStoreExportSelectionInput.ExportChoice>> {
     private static final Logger LOG = LogManager.getLogger(KeyStoreExportSelectionInput.class);
     private static final I18N i18n = com.dua3.utility.i18n.I18N.getInstance();
     
@@ -115,7 +115,7 @@ public class KeyStoreExportSelectionInput implements InputControl {
     }
 
     @Override
-    public InputControlState state() {
+    public InputControlState<ObservableMap<String, ExportChoice>> state() {
         return state;
     }
 

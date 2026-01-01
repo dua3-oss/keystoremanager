@@ -25,6 +25,7 @@ import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.WizardDialogBuilder;
 import com.dua3.utility.lang.LangUtil;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableMap;
 import javafx.stage.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -78,7 +79,7 @@ public final class ExportDialogs {
 
         builder.page(ITEMS_TO_EXPORT, Dialogs.inputDialogPane()
                 .header(I18N.get("dua3.keystoremanager.dialog.export.header.warning"))
-                .addInput(SELECTED_ALIASES, Map.class, FXCollections::observableHashMap, keyStoreExportSelectionInput)
+                .addInput(SELECTED_ALIASES, (Class<ObservableMap<String, KeyStoreExportSelectionInput.ExportChoice>>) (Class<?>) ObservableMap.class, FXCollections::observableHashMap, keyStoreExportSelectionInput)
         );
 
         AtomicReference<@Nullable ExportMode> exportMode = new AtomicReference<>(null);
