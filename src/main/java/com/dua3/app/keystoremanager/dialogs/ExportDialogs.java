@@ -23,7 +23,9 @@ import com.dua3.utility.crypt.KeyStoreType;
 import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.WizardDialogBuilder;
+import com.dua3.utility.io.IoUtil;
 import com.dua3.utility.lang.LangUtil;
+import com.dua3.utility.lang.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
 import javafx.stage.Window;
@@ -31,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.List;
@@ -85,20 +88,6 @@ public final class ExportDialogs {
         AtomicReference<@Nullable ExportMode> exportMode = new AtomicReference<>(null);
         AtomicReference<@Nullable Path> targetFolder = new AtomicReference<>(null);
         AtomicReference<@Nullable String> keystoreName = new AtomicReference<>(null);
-        Function<@Nullable Object, Optional<String>> velidateExportSettings = ignored ->
-                switch (exportMode.get()) {
-                    case null -> Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_mode"));
-                    case CLIPBOARD -> Optional.empty();
-                    case FILE -> {
-                        if (targetFolder.get() == null) {
-                            yield Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_folder"));
-                        }
-                        if (keystoreName.get() == null) {
-                            yield Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_name"));
-                        }
-                        yield Optional.empty();
-                    }
-                };
         builder.page(KEYSTORE_SETTINGS, Dialogs.inputDialogPane()
                 .header(I18N.get("dua3.keystoremanager.dialog.export.header.settings"))
                 .inputComboBox(ID_KEYSTORE_TYPE, I18N.get("dua3.keystoremanager.dialog.export.type"), () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.values()))
@@ -109,29 +98,25 @@ public final class ExportDialogs {
                         () -> ExportMode.CLIPBOARD,
                         ExportMode.class,
                         List.of(ExportMode.values()),
-                        value -> {
-                            exportMode.set(value);
-                            Optional<String> result = velidateExportSettings.apply(value);
-                            LOG.trace("Export Mode - validateExportSettings: {}", result);
-                            return result;
-                        }
+                        value -> Optional.ofNullable(value == null ? I18N.get("dua3.keystoremanager.dialog.export.validator.select_mode") : null)
                 )
-                .inputFolder(ID_KEYSTORE_FOLDER, I18N.get("dua3.keystoremanager.dialog.export.target_folder"), keystore.path()::getParent, true,
-                        value -> {
-                            targetFolder.set(value);
-                            Optional<String> result = velidateExportSettings.apply(value);
-                            LOG.trace("Target Folder - validateExportSettings: {}", result);
-                            return result;
-                        }
-                )
-                .inputString(ID_KEYSTORE_NAME, I18N.get("dua3.keystoremanager.dialog.export.keystore_name"), () -> null,
-                        value -> {
-                            keystoreName.set(value);
-                            Optional<String> result = velidateExportSettings.apply(value);
-                            LOG.trace("Keystore name - validateExportSettings: {}", result);
-                            return result;
-                        }
-                )
+                .inputFolder(ID_KEYSTORE_FOLDER, I18N.get("dua3.keystoremanager.dialog.export.target_folder"), keystore.path()::getParent, true, v -> Optional.empty())
+                .inputString(ID_KEYSTORE_NAME, I18N.get("dua3.keystoremanager.dialog.export.keystore_name"), () -> null)
+                .validate(data -> {
+                    if (data.get(ID_EXPORT_MODE) != ExportMode.FILE) {
+                        return Map.of(
+                                ID_KEYSTORE_FOLDER, Optional.empty(),
+                                ID_KEYSTORE_NAME, Optional.empty()
+                        );
+                    } else {
+                        Path folder = (Path) data.get(ID_KEYSTORE_FOLDER);
+                        String name = (String) data.get(ID_KEYSTORE_NAME);
+                        return Map.of(
+                                ID_KEYSTORE_FOLDER, folder == null || !Files.isDirectory(folder) ? Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_folder")) : Optional.empty(),
+                                ID_KEYSTORE_NAME, name == null || !IoUtil.isValidFileName(name, Platform.currentPlatform()) ? Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.select_name")) : Optional.empty()
+                        );
+                    }
+                })
         );
 
         // show the wizard
