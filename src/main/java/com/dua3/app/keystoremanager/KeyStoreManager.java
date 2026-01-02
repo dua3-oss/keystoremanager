@@ -142,6 +142,9 @@ public class KeyStoreManager extends Application {
 
         Scene scene = new Scene(root, width, Math.round(width / MathUtil.GOLDEN_RATIO));
 
+        // add custom CSS
+        scene.getStylesheets().add(LangUtil.getResourceURL(getClass(), "common.css", I18N.getLocale()).toExternalForm());
+
         primaryStage.setScene(scene);
         primaryStage.setTitle(I18N.get("dua3.keystoremanager.manager.title"));
         primaryStage.show();
