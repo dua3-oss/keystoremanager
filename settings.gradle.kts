@@ -29,7 +29,7 @@ dependencyResolutionManagement {
         create("libs") {
             version("projectVersion", projectVersion)
 
-            plugin("jdk", "com.dua3.gradle.jdkprovider").version("0.4.0-beta4")
+            plugin("jdk", "com.dua3.gradle.jdkprovider").version("0.4.0")
             plugin("graalvm", "org.graalvm.buildtools.native").version("0.11.3")
             plugin("jlink", "org.beryx.jlink").version("3.2.0")
             plugin("versions", "com.github.ben-manes.versions").version("0.53.0")
@@ -39,7 +39,7 @@ dependencyResolutionManagement {
             plugin("forbiddenapis", "de.thetaphi.forbiddenapis").version("3.10")
 
             version("bouncycastle", "1.83")
-            version("dua3-utility", "20.3.1-SNAPSHOT")
+            version("dua3-utility", "20.4.0")
             version("ikonli", "12.4.0")
             version("jspecify", "1.0.0")
             version("junit-bom", "6.0.1")
