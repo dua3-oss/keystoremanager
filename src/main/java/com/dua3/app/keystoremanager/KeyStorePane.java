@@ -61,7 +61,6 @@ import com.dua3.app.keystoremanager.dialogs.ExportDialogs.ExportMode;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -73,6 +72,7 @@ import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -309,40 +309,94 @@ public class KeyStorePane extends Pane {
                 .selectedFilter(EXTENSION_FILTERS[0])
                 .initialFile(IoUtil.toPath(ApplicationUtil.recentlyUsedDocuments().getLastUri()))
                 .showOpenDialog()
-                .ifPresent(path -> {
-                    AtomicBoolean retry = new AtomicBoolean(true);
-                    while (retry.get()) {
-                        Dialogs.prompt(getScene().getWindow(), MessageFormatter.i18n())
-                                .mode(PromptMode.PASSWORD)
-                                .title("dua3.keystoremanager.pane.keystore.password.title")
-                                .header("dua3.keystoremanager.pane.keystore.password.enter.password", path.getFileName())
-                                .showAndWait()
-                                .ifPresentOrElse(password -> {
-                                            try {
-                                                KeyStore newKeyStore = KeyStoreUtil.loadKeyStore(path, password.toCharArray());
-                                                setKeyStore(new KeyStoreData(newKeyStore, password, path));
-                                                retry.set(false);
-                                                LOG.debug("KeyStore loaded from {}", path);
-                                            } catch (IOException e) {
-                                                LOG.warn("Security error loading KeyStore", e);
-                                                Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
-                                                        .title("dua3.keystoremanager.error.loading.keystore")
-                                                        .header("dua3.keystoremanager.keystore.load.io.error")
-                                                        .text(MessageFormatter.literal(e.getMessage()))
-                                                        .showAndWait();
-                                            } catch (GeneralSecurityException e) {
-                                                LOG.warn("Security error loading KeyStore", e);
-                                                Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
-                                                        .title("dua3.keystoremanager.error.loading.keystore")
-                                                        .header("dua3.keystoremanager.keystore.load.security.error")
-                                                        .text(e.getMessage())
-                                                        .showAndWait();
-                                            }
-                                        },
-                                        () -> retry.set(false)
-                                );
-                    }
-                });
+                .ifPresent(this::loadKeyStoreFromFile);
+    }
+
+    private void loadKeyStoreFromFile(Path path) {
+        AtomicBoolean retry = new AtomicBoolean(true);
+        while (retry.get()) {
+            Dialogs.prompt(getScene().getWindow(), MessageFormatter.i18n())
+                    .mode(PromptMode.PASSWORD)
+                    .title("dua3.keystoremanager.pane.keystore.password.title")
+                    .header("dua3.keystoremanager.pane.keystore.password.enter.password", path.getFileName())
+                    .showAndWait()
+                    .ifPresentOrElse(password -> {
+                                try {
+                                    KeyStore newKeyStore = KeyStoreUtil.loadKeyStore(path, password.toCharArray());
+                                    setKeyStore(new KeyStoreData(newKeyStore, password, path));
+                                    retry.set(false);
+                                    LOG.debug("KeyStore loaded from {}", path);
+                                } catch (IOException e) {
+                                    LOG.warn("Security error loading KeyStore", e);
+                                    Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
+                                            .title("dua3.keystoremanager.error.loading.keystore")
+                                            .header("dua3.keystoremanager.keystore.load.io.error")
+                                            .text(MessageFormatter.literal(e.getMessage()))
+                                            .showAndWait();
+                                } catch (GeneralSecurityException e) {
+                                    LOG.warn("Security error loading KeyStore", e);
+                                    Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
+                                            .title("dua3.keystoremanager.error.loading.keystore")
+                                            .header("dua3.keystoremanager.keystore.load.security.error")
+                                            .text(e.getMessage())
+                                            .showAndWait();
+                                }
+                            },
+                            () -> retry.set(false)
+                    );
+        }
+    }
+
+    private void importKeyStoreFromClipboard() {
+        LOG.debug("importKeyStoreFromClipboard()");
+
+        Clipboard clipboard = Clipboard.getSystemClipboard();
+        if (clipboard.hasFiles()) {
+            List<Path> files = clipboard.getFiles().stream().map(File::toPath).toList();
+            if (!files.isEmpty()) {
+                loadKeyStoreFromFile(files.getFirst());
+                return;
+            }
+        }
+
+        if (clipboard.hasString()) {
+            String content = clipboard.getString();
+            try {
+                // remove PEM headers/footers and whitespace if present
+                String base64 = content
+                        .replaceFirst("-----BEGIN .*-----", "")
+                        .replaceFirst("-----END .*-----", "")
+                        .replaceAll("\\s", "");
+                byte[] data = java.util.Base64.getDecoder().decode(base64);
+                Dialogs.chooseFile(getScene().getWindow())
+                        .filter(EXTENSION_FILTERS)
+                        .selectedFilter(EXTENSION_FILTERS[0])
+                        .initialFile(getInitialFolder().resolve("clipboard.p12"))
+                        .showSaveDialog()
+                        .ifPresent(path -> {
+                            try {
+                                Files.write(path, data);
+                                loadKeyStoreFromFile(path);
+                            } catch (IOException e) {
+                                LOG.warn("Error saving KeyStore from clipboard", e);
+                                Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
+                                        .title("dua3.keystoremanager.pane.error.saving_keystore")
+                                        .header("dua3.keystoremanager.pane.error.saving_keystore.header")
+                                        .text(MessageFormatter.literal(e.getMessage()))
+                                        .showAndWait();
+                            }
+                        });
+                return;
+            } catch (IllegalArgumentException e) {
+                LOG.debug("Clipboard content is not valid Base64", e);
+            }
+        }
+
+        Dialogs.alert(getScene().getWindow(), Alert.AlertType.WARNING, MessageFormatter.i18n())
+                .title("dua3.keystoremanager.pane.import_keystore_from_clipboard.title")
+                .header("dua3.keystoremanager.pane.import_keystore_from_clipboard.invalid.header")
+                .text("dua3.keystoremanager.pane.import_keystore_from_clipboard.invalid.text")
+                .showAndWait();
     }
 
     /**
@@ -364,27 +418,28 @@ public class KeyStorePane extends Pane {
         name.setValue(EMPTY_NAME);
         ImageView logo = new ImageView(LOGO.fxImage());
 
-        double buttonWidth = logo.getImage().getWidth() * 0.48;
-        HBox buttons = new HBox(
+        double buttonWidth = logo.getImage().getWidth();
+
+        VBox vBox = new VBox(
+                logo,
                 Controls.button()
                         .text(I18N.get("dua3.keystoremanager.pane.button.create_keystore"))
                         .prefWidth(buttonWidth)
                         .action(this::createKeyStore)
                         .build(),
-                Controls.spacer(),
                 Controls.button()
                         .text(I18N.get("dua3.keystoremanager.pane.button.load_keystore"))
                         .prefWidth(buttonWidth)
                         .action(this::loadKeyStore)
+                        .build(),
+                Controls.button()
+                        .text(I18N.get("dua3.keystoremanager.pane.button.import_keystore_from_clipboard"))
+                        .prefWidth(buttonWidth)
+                        .action(this::importKeyStoreFromClipboard)
                         .build()
         );
-        buttons.setMaxWidth(LOGO.width());
-
-        VBox vBox = new VBox(
-                logo,
-                buttons
-        );
         vBox.setAlignment(Pos.CENTER);
+        vBox.setSpacing(8);
 
         StackPane stackPane = new StackPane(vBox);
 
