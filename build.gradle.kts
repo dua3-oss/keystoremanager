@@ -363,6 +363,34 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Add run tasks for each locale
+/////////////////////////////////////////////////////////////////////////////
+val resourceDir = file("src/main/resources/dua3")
+val localeFiles = resourceDir.listFiles { _, name ->
+    name.startsWith("keystoremanager_") && name.endsWith(".properties")
+} ?: emptyArray()
+
+localeFiles.forEach { file ->
+    val localeString = file.name.removePrefix("keystoremanager_").removeSuffix(".properties")
+    val taskName = "run_$localeString"
+    tasks.register<JavaExec>(taskName) {
+        group = "application"
+        description = "Run the application with locale $localeString"
+        mainClass.set(application.mainClass)
+        classpath = sourceSets.main.get().runtimeClasspath
+        jvmArgs = application.applicationDefaultJvmArgs + listOf("-Duser.language=$localeString")
+        // If locale contains country code (e.g. zh_Hant)
+        if (localeString.contains('_')) {
+            val parts = localeString.split('_')
+            jvmArgs = application.applicationDefaultJvmArgs + listOf(
+                "-Duser.language=${parts[0]}",
+                "-Duser.country=${parts[1]}"
+            )
+        }
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // Versions plugin configuration for all projects
 /////////////////////////////////////////////////////////////////////////////
 
