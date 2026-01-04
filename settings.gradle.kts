@@ -39,7 +39,7 @@ dependencyResolutionManagement {
             plugin("forbiddenapis", "de.thetaphi.forbiddenapis").version("3.10")
 
             version("bouncycastle", "1.83")
-            version("dua3-utility", "20.4.1")
+            version("dua3-utility", "20.4.2-SNAPSHOT")
             version("ikonli", "12.4.0")
             version("jspecify", "1.0.0")
             version("junit-bom", "6.0.1")
