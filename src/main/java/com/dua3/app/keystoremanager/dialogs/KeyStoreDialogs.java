@@ -114,12 +114,12 @@ public final class KeyStoreDialogs {
 
         KeyStore ks = keyStore.keyStore();
 
-        InputDialogBuilder builder = Dialogs.input(owner)
-                .title(I18N.get("dua3.keystoremanager.dialog.details.title"))
+        InputDialogBuilder builder = Dialogs.input(owner, MessageFormatter.i18n())
+                .title("dua3.keystoremanager.dialog.details.title")
                 .resizable(true);
 
         try {
-            builder.section(0, I18N.get("dua3.keystoremanager.dialog.details.private_key_details"));
+            builder.section(0, "dua3.keystoremanager.dialog.details.private_key_details");
 
             // Get certificate information
             java.security.cert.Certificate cert = ks.getCertificate(alias);
@@ -135,44 +135,44 @@ public final class KeyStoreDialogs {
 
                 // --- Certificate data ---
 
-                builder.section(1, I18N.get("dua3.keystoremanager.dialog.details.certificate"));
+                builder.section(1, "dua3.keystoremanager.dialog.details.certificate");
 
-                builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.type") + ": ", "%s", cert.getType());
-                builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.algorithm"), "%s", publicKey.getAlgorithm());
+                builder.labeledText("dua3.keystoremanager.dialog.details.type", "\0", cert.getType());
+                builder.labeledText("dua3.keystoremanager.dialog.details.algorithm", "\0", publicKey.getAlgorithm());
                 if (keySize >= 0) {
-                    builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.key_size"), I18N.get("dua3.keystoremanager.dialog.details.key_size.format"), keySize);
+                    builder.labeledText("dua3.keystoremanager.dialog.details.key_size", "dua3.keystoremanager.dialog.details.key_size.format", keySize);
                 }
 
                 if (cert instanceof X509Certificate x509Cert) {
-                    builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.valid_from"), "%s", x509Cert.getNotBefore());
-                    builder.labeledText(I18N.get("dua3.keystoremanager.dialog.details.valid_until"), "%s", x509Cert.getNotAfter());
+                    builder.labeledText("dua3.keystoremanager.dialog.details.valid_from", "\0", x509Cert.getNotBefore());
+                    builder.labeledText("dua3.keystoremanager.dialog.details.valid_until", "\0", x509Cert.getNotAfter());
 
                     // Add subject fields to table if it's an X509Certificate
-                    builder.section(2, I18N.get("dua3.keystoremanager.dialog.details.subject_fields"));
+                    builder.section(2, "dua3.keystoremanager.dialog.details.subject_fields");
                     String subjectDN = x509Cert.getSubjectX500Principal().getName();
                     String[] subjectParts = subjectDN.split(",");
                     for (String part : subjectParts) {
                         String[] keyValue = part.trim().split("=", 2);
                         if (keyValue.length == 2) {
-                            builder.labeledText(keyValue[0], "%s", keyValue[1]);
+                            builder.labeledText("\0" + keyValue[0], "\0", keyValue[1]);
                         }
                     }
                 }
 
                 // --- Public Key data ---
 
-                builder.section(1, I18N.get("dua3.keystoremanager.dialog.details.public_key"));
+                builder.section(1, "dua3.keystoremanager.dialog.details.public_key");
 
                 TextArea nodePublicKeyPem = new TextArea(KeyUtil.toPem(publicKey));
                 nodePublicKeyPem.setEditable(false);
                 nodePublicKeyPem.setWrapText(true);
                 nodePublicKeyPem.setPrefRowCount(5);
-                builder.node(I18N.get("dua3.keystoremanager.dialog.details.public_key"), nodePublicKeyPem);
+                builder.node("dua3.keystoremanager.dialog.details.public_key", nodePublicKeyPem);
             }
 
             // ===== SECTION 3: Private Key =====
 
-            builder.section(1, I18N.get("dua3.keystoremanager.dialog.details.private_key"));
+            builder.section(1, "dua3.keystoremanager.dialog.details.private_key");
 
             TextArea nodePrivateKeyPem = new TextArea(HIDDEN);
             nodePrivateKeyPem.setEditable(false);
@@ -182,12 +182,12 @@ public final class KeyStoreDialogs {
             Button btnShowPrivateKey = new Button(I18N.get("dua3.keystoremanager.dialog.details.show_private_key"));
             btnShowPrivateKey.setOnAction(evt -> {
                 if (nodePrivateKeyPem.getText().equals(HIDDEN)) {
-                    Optional<String> password = Dialogs.input(owner)
-                            .title(I18N.get("dua3.keystoremanager.dialog.details.unlock_private_key.title"))
-                            .header(I18N.get("dua3.keystoremanager.dialog.details.unlock_private_key.header"))
-                            .inputPassword("password", I18N.get("dua3.keystoremanager.dialog.details.unlock_private_key.password"), keyStore::password)
+                    Optional<String> password = Dialogs.input(owner, MessageFormatter.i18n())
+                            .title("dua3.keystoremanager.dialog.details.unlock_private_key.title")
+                            .header("dua3.keystoremanager.dialog.details.unlock_private_key.header")
+                            .inputPassword("password", "dua3.keystoremanager.dialog.details.unlock_private_key.password", keyStore::password)
                             .showAndWait()
-                            .map(r -> r.get("password").toString());
+                            .map(r -> String.valueOf(r.get("password")));
 
                     password.ifPresent(p -> {
                         try {
@@ -197,17 +197,17 @@ public final class KeyStoreDialogs {
                                 btnShowPrivateKey.setText(I18N.get("dua3.keystoremanager.dialog.details.hide_private_key"));
                             } else {
                                 Dialogs.alert(owner, Alert.AlertType.ERROR)
-                                        .title(I18N.get("dua3.keystoremanager.dialog.details.error"))
-                                        .header(I18N.get("dua3.keystoremanager.dialog.details.error.retrieve_private_failed"))
-                                        .text(I18N.get("dua3.keystoremanager.dialog.details.error.not_a_private_key"), alias)
+                                        .title("dua3.keystoremanager.dialog.details.error")
+                                        .header("dua3.keystoremanager.dialog.details.error.retrieve_private_failed")
+                                        .text("dua3.keystoremanager.dialog.details.error.not_a_private_key", alias)
                                         .showAndWait();
                             }
                         } catch (Exception e) {
                             LOG.warn("Could not retrieve private key for '{}'", alias, e);
                             Dialogs.alert(owner, Alert.AlertType.ERROR)
-                                    .title(I18N.get("dua3.keystoremanager.dialog.details.error"))
-                                    .header(I18N.get("dua3.keystoremanager.dialog.details.error.retrieve_private_failed"))
-                                    .text(I18N.get("dua3.keystoremanager.dialog.details.error.check_password"), e.getMessage())
+                                    .title("dua3.keystoremanager.dialog.details.error")
+                                    .header("dua3.keystoremanager.dialog.details.error.retrieve_private_failed")
+                                    .text("dua3.keystoremanager.dialog.details.error.check_password", e.getMessage())
                                     .showAndWait();
                         }
                     });
@@ -217,7 +217,7 @@ public final class KeyStoreDialogs {
                 }
             });
 
-            builder.node(I18N.get("dua3.keystoremanager.dialog.details.private_key"), nodePrivateKeyPem);
+            builder.node("dua3.keystoremanager.dialog.details.private_key", nodePrivateKeyPem);
             builder.node("", btnShowPrivateKey);
 
             // show certificate chain
@@ -227,23 +227,23 @@ public final class KeyStoreDialogs {
                     chain = new java.security.cert.Certificate[]{cert};
                 }
 
-                builder.section(2, I18N.get("dua3.keystoremanager.dialog.details.certificate_chain"));
+                builder.section(2, "dua3.keystoremanager.dialog.details.certificate_chain");
 
                 if (chain != null && chain.length > 0) {
                     for (int i = 0; i < chain.length; i++) {
-                        String label = "#" + (i + 1);
+                        String label = "\0'#" + (i + 1) + "'";
                         if (chain[i] instanceof X509Certificate x509) {
-                            builder.labeledText(label, I18N.get("dua3.keystoremanager.dialog.details.certificate_chain.format"),
+                            builder.labeledText(label, "dua3.keystoremanager.dialog.details.certificate_chain.format",
                                     x509.getSubjectX500Principal().getName(),
                                     x509.getIssuerX500Principal().getName(),
                                     x509.getNotBefore(), x509.getNotAfter()
                             );
                         } else {
-                            builder.labeledText(label, I18N.get("dua3.keystoremanager.dialog.details.certificate_chain.other_type"), chain[i].getType());
+                            builder.labeledText(label, "dua3.keystoremanager.dialog.details.certificate_chain.other_type", chain[i].getType());
                         }
                     }
                 } else {
-                    builder.text(I18N.get("dua3.keystoremanager.dialog.details.certificate_chain.none"));
+                    builder.text("dua3.keystoremanager.dialog.details.certificate_chain.none");
                 }
             } catch (Exception e) {
                 LOG.warn("Could not build certificate chain preview for '{}': {}", alias, e.toString());
@@ -254,8 +254,8 @@ public final class KeyStoreDialogs {
         } catch (KeyStoreException e) {
             LOG.warn("Error retrieving key details for alias: {}", alias, e);
             Dialogs.alert(owner, Alert.AlertType.WARNING)
-                    .title(I18N.get("dua3.keystoremanager.dialog.details.error.retrieving_key_details"))
-                    .header(I18N.get("dua3.keystoremanager.dialog.details.error.retrieving_key_details_for_alias"), alias)
+                    .title("dua3.keystoremanager.dialog.details.error.retrieving_key_details")
+                    .header("dua3.keystoremanager.dialog.details.error.retrieving_key_details_for_alias", alias)
                     .text("%s", e.getMessage())
                     .showAndWait();
         }
@@ -270,9 +270,9 @@ public final class KeyStoreDialogs {
      */
     public static void showUnknownEntryDetails(Window owner, KeyStoreEntryType type, String alias) {
         Dialogs.input(owner)
-                .title(I18N.get("dua3.keystoremanager.dialog.details.unknown_entry_details"))
-                .labeledText(I18N.get("dua3.keystoremanager.dialog.details.alias"), "%s", alias)
-                .labeledText(I18N.get("dua3.keystoremanager.dialog.details.type"), "%s", type)
+                .title("dua3.keystoremanager.dialog.details.unknown_entry_details")
+                .labeledText("dua3.keystoremanager.dialog.details.alias", "%s", alias)
+                .labeledText("dua3.keystoremanager.dialog.details.type", "%s", type)
                 .showAndWait();
     }
 }
