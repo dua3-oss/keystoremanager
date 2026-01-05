@@ -27,7 +27,6 @@ import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.fx.controls.Dialogs;
 import com.dua3.utility.fx.controls.WizardDialogBuilder;
 import com.dua3.utility.io.IoUtil;
-import com.dua3.utility.lang.LangUtil;
 import com.dua3.utility.lang.Platform;
 import com.dua3.utility.text.MessageFormatter;
 import javafx.collections.FXCollections;
@@ -41,7 +40,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -90,10 +89,10 @@ public final class ExportDialogs {
         LOG.debug("Showing new export dialog.");
 
         AtomicReference<ObservableMap<String, KeyStoreExportSelectionInput.ExportChoice>> itemsToExport = new AtomicReference<>();
-        AtomicReference<KeyStore> newKeystore = new AtomicReference<>();
+        AtomicReference<@Nullable KeyStore> newKeystore = new AtomicReference<>();
         AtomicReference<String> newKeystorePassword = new AtomicReference<>("");
-        AtomicReference<Path> newKeystorePath = new AtomicReference<>();
-        AtomicReference<KeyStoreType> newKeystoreType = new AtomicReference<>();
+        AtomicReference<@Nullable Path> newKeystorePath = new AtomicReference<>();
+        AtomicReference<@Nullable KeyStoreType> newKeystoreType = new AtomicReference<>();
 
         // Create the dialog
         WizardDialogBuilder builder = Dialogs.wizard(owner, MessageFormatter.i18n())
