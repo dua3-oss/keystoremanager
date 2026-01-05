@@ -130,16 +130,16 @@ public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<
 
         TableColumn<Row, String> colAlias = new TableColumn<>(i18n.get("dua3.keystoremanager.dialog.export.selection.column.item_name"));
         colAlias.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().alias()));
-        colAlias.setPrefWidth(200);
+        colAlias.setPrefWidth(400);
 
         TableColumn<Row, KeyStoreEntryType> colType = new TableColumn<>(i18n.get("dua3.keystoremanager.dialog.export.selection.column.type"));
         colType.setCellValueFactory(cd -> new SimpleObjectProperty<>(cd.getValue().type()));
-        colType.setPrefWidth(140);
+        colType.setPrefWidth(200);
 
         TableColumn<Row, ExportChoice> colExport = new TableColumn<>(i18n.get("dua3.keystoremanager.dialog.export.selection.column.export"));
         colExport.setCellValueFactory(cd -> cd.getValue().choice());
         colExport.setCellFactory(col -> new ExportChoiceCell());
-        colExport.setPrefWidth(500);
+        colExport.setPrefWidth(600);
 
         table.getColumns().setAll(colAlias, colType, colExport);
         table.setItems(buildRows(keystore));
