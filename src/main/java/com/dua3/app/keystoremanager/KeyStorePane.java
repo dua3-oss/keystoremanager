@@ -225,8 +225,7 @@ public class KeyStorePane extends Pane {
                                         Path keyStorePath = folder.resolve(keyName + '.' + type.getExtension());
 
                                         if (Files.exists(keyStorePath)) {
-                                            LOG.debug("File already exists: {}", keyStorePath);
-                                            throw new IOException("File already exists: " + keyStorePath);
+                                            throw new IOException(I18N.format("dua3.keystoremanager.pane.error.file_already_exists", keyStorePath));
                                         }
 
                                         KeyStore instance = KeyStoreUtil.createKeyStore(type, password.toCharArray());

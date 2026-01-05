@@ -118,8 +118,8 @@ public final class ExportDialogs {
                 .inputPasswordWithVerification(ID_KEYSTORE_PASSWORD, "dua3.keystoremanager.dialog.export.password", "dua3.keystoremanager.dialog.export.password.repeat")
                 .resultHandler((btn, data) -> createKeyStoreForExport(owner, keystore, data, itemsToExport, newKeystorePassword, newKeystore, newKeystoreType))
                 .next(Map.of(
-                        new ButtonType("Export to File"), EXPORT_TO_FILE,
-                        new ButtonType("Export to Clipboard"), EXPORT_TO_CLIPBOARD
+                        new ButtonType(I18N.get("dua3.keystoremanager.dialog.export.button.export_to_file")), EXPORT_TO_FILE,
+                        new ButtonType(I18N.get("dua3.keystoremanager.dialog.export.button.export_to_clipboard")), EXPORT_TO_CLIPBOARD
                 ))
         );
 
@@ -127,7 +127,7 @@ public final class ExportDialogs {
         builder.page(EXPORT_TO_FILE, Dialogs.inputDialogPane(MessageFormatter.i18n())
                 .header("dua3.keystoremanager.dialog.export.header.export_to_file")
                 .inputFolder(ID_KEYSTORE_FOLDER, "dua3.keystoremanager.dialog.export.target_folder", keystore.path()::getParent, true)
-                .inputString(ID_KEYSTORE_NAME, "dua3.keystoremanager.dialog.export.keystore_name", () -> null, v -> IoUtil.isValidFileName(v, Platform.currentPlatform()) ? Optional.empty() : Optional.of("Input a valid filename"))
+                .inputString(ID_KEYSTORE_NAME, "dua3.keystoremanager.dialog.export.keystore_name", () -> null, v -> IoUtil.isValidFileName(v, Platform.currentPlatform()) ? Optional.empty() : Optional.of(I18N.get("dua3.keystoremanager.dialog.export.validator.valid_filename")))
                 .resultHandler((btn, data) -> {
                     if (!(data.get(ID_KEYSTORE_FOLDER) instanceof Path folder)) {
                         return false;
@@ -330,7 +330,7 @@ public final class ExportDialogs {
      */
     private static Button createButtonCopyKeyStoreToClipBoard(Window owner, KeyStoreData keystore, AtomicReference<String> newKeystorePassword) {
         return Controls.button()
-                .text("Copy Keystore to Clipboard").action(() -> {
+                .text(I18N.get("dua3.keystoremanager.dialog.export.button.copy_keystore_to_clipboard")).action(() -> {
                     try {
                         String dstPassword = newKeystorePassword.get();
                         // copy to clipboard
@@ -362,7 +362,7 @@ public final class ExportDialogs {
      */
     private static Button createButtonCopyPasswordToClipboard(AtomicReference<String> newKeystorePassword) {
         return Controls.button()
-                .text("Copy Password to Clipboard")
+                .text(I18N.get("dua3.keystoremanager.dialog.export.button.copy_password_to_clipboard"))
                 .action(() -> {
                     String password = newKeystorePassword.get();
                     // copy to clipboard
