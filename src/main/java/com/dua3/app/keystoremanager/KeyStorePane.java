@@ -20,7 +20,6 @@ package com.dua3.app.keystoremanager;
 
 import com.dua3.app.keystoremanager.dialogs.ExportDialogs;
 import com.dua3.app.keystoremanager.dialogs.KeyStoreDialogs;
-import com.dua3.app.keystoremanager.dialogs.KeyStoreExportSelectionInput;
 import com.dua3.app.keystoremanager.dialogs.PrivateKeyDialogs;
 import com.dua3.app.keystoremanager.dialogs.SecretKeyDialogs;
 import com.dua3.utility.i18n.I18N;
@@ -71,7 +70,6 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -249,14 +247,14 @@ public class KeyStorePane extends Pane {
                                         Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                                 .title("dua3.keystoremanager.pane.error.keystore_creation_failed.title")
                                                 .header("dua3.keystoremanager.pane.error.keystore_creation_failed.header")
-                                                .text(e.getMessage())
+                                                .text(MessageFormatter.literal(e.getMessage()))
                                                 .showAndWait();
                                     } catch (IOException e) {
                                         LOG.warn("I/O error creating KeyStore", e);
                                         Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                                 .title("dua3.keystoremanager.pane.error.keystore_creation_failed.title")
                                                 .header("dua3.keystoremanager.pane.error.keystore_save_failed.header")
-                                                .text(e.getMessage())
+                                                .text(MessageFormatter.literal(e.getMessage()))
                                                 .showAndWait();
                                     }
                                 }
@@ -327,7 +325,7 @@ public class KeyStorePane extends Pane {
                                     retry.set(false);
                                     LOG.debug("KeyStore loaded from {}", path);
                                 } catch (IOException e) {
-                                    LOG.warn("Security error loading KeyStore", e);
+                                    LOG.warn("I/O error loading KeyStore", e);
                                     Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                             .title("dua3.keystoremanager.error.loading.keystore")
                                             .header("dua3.keystoremanager.keystore.load.io.error")
@@ -338,7 +336,7 @@ public class KeyStorePane extends Pane {
                                     Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                             .title("dua3.keystoremanager.error.loading.keystore")
                                             .header("dua3.keystoremanager.keystore.load.security.error")
-                                            .text(e.getMessage())
+                                            .text(MessageFormatter.literal(e.getMessage()))
                                             .showAndWait();
                                 }
                             },
@@ -378,7 +376,7 @@ public class KeyStorePane extends Pane {
                                 Files.write(path, data);
                                 loadKeyStoreFromFile(path);
                             } catch (IOException e) {
-                                LOG.warn("Error saving KeyStore from clipboard", e);
+                                LOG.warn("I/O error saving KeyStore from clipboard", e);
                                 Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                         .title("dua3.keystoremanager.pane.error.saving_keystore")
                                         .header("dua3.keystoremanager.pane.error.saving_keystore.header")
@@ -388,7 +386,7 @@ public class KeyStorePane extends Pane {
                         });
                 return;
             } catch (IllegalArgumentException e) {
-                LOG.debug("Clipboard content is not valid Base64", e);
+                LOG.warn("Clipboard content is not valid Base64", e);
             }
         }
 
@@ -493,124 +491,7 @@ public class KeyStorePane extends Pane {
     }
 
     private void export() {
-        try {
-            var result = ExportDialogs.showExportDialog(getScene().getWindow(), keyStore);
-            if (result.isEmpty()) {
-                return;
-            }
-
-            // create new keystore
-            var settings = result.orElseThrow();
-            KeyStoreType tempType = settings.type().isExportOnly() ? KeyStoreType.PKCS12 : settings.type();
-            KeyStore newKeyStore = KeyStoreUtil.createKeyStore(tempType, settings.password().toCharArray());
-
-            // add selected entries to new keystore
-            KeyStore srcKeyStore = keyStore.keyStore();
-            char[] srcPassword = keyStore.password().toCharArray();
-            char[] dstPassword = settings.password().toCharArray();
-
-            for (var entry : settings.selection().entrySet()) {
-                String alias = entry.getKey();
-                KeyStoreExportSelectionInput.ExportChoice choice = entry.getValue();
-                switch (choice) {
-                    case NONE -> {
-                        // do nothing
-                    }
-                    case PUBLIC_ONLY -> {
-                        // Export only the public certificate for key pairs
-                        Certificate cert = srcKeyStore.getCertificate(alias);
-                        if (cert != null) {
-                            newKeyStore.setCertificateEntry(alias, cert);
-                        } else if (srcKeyStore.isCertificateEntry(alias)) {
-                            // certificate entry fallback (should already be covered by cert != null)
-                            Certificate c = srcKeyStore.getCertificate(alias);
-                            if (c != null) {
-                                newKeyStore.setCertificateEntry(alias, c);
-                            }
-                        }
-                    }
-                    case PUBLIC_AND_PRIVATE -> {
-                        // Export private key with its certificate chain
-                        KeyStore.Entry e = srcKeyStore.getEntry(alias, new KeyStore.PasswordProtection(srcPassword));
-                        if (e instanceof KeyStore.PrivateKeyEntry pke) {
-                            Certificate[] chain = pke.getCertificateChain();
-                            if (chain == null || chain.length == 0) {
-                                Certificate cert = srcKeyStore.getCertificate(alias);
-                                if (cert != null) {
-                                    chain = new Certificate[]{cert};
-                                }
-                            }
-                            newKeyStore.setKeyEntry(alias, pke.getPrivateKey(), dstPassword, chain);
-                        } else if (srcKeyStore.isKeyEntry(alias)) {
-                            // Not a private key entry; ignore for this choice
-                            LOG.warn("Alias '{}' is not a PrivateKeyEntry; skipping PUBLIC_AND_PRIVATE export.", alias);
-                        }
-                    }
-                    case EXPORT -> {
-                        // Export full material where appropriate:
-                        // - For SecretKey entries: copy the secret key (re-protect with destination password)
-                        // - For Certificate entries: copy the certificate
-                        // - For other types: best-effort certificate export
-                        if (srcKeyStore.isKeyEntry(alias)) {
-                            KeyStore.Entry e = srcKeyStore.getEntry(alias, new KeyStore.PasswordProtection(srcPassword));
-                            switch (e) {
-                                case KeyStore.SecretKeyEntry ske ->
-                                    // Re-wrap the secret key with the destination keystore password
-                                        newKeyStore.setEntry(alias, new KeyStore.SecretKeyEntry(ske.getSecretKey()), new KeyStore.PasswordProtection(dstPassword));
-                                case KeyStore.PrivateKeyEntry privateKeyEntry -> {
-                                    // For private keys, EXPORT in the UI is not offered; fall back to certificate only for safety
-                                    Certificate cert = srcKeyStore.getCertificate(alias);
-                                    if (cert != null) {
-                                        newKeyStore.setCertificateEntry(alias, cert);
-                                    }
-                                }
-                                case null, default -> {
-                                    // Unknown key entry type; attempt certificate copy
-                                    Certificate cert = srcKeyStore.getCertificate(alias);
-                                    if (cert != null) {
-                                        newKeyStore.setCertificateEntry(alias, cert);
-                                    }
-                                }
-                            }
-                        } else if (srcKeyStore.isCertificateEntry(alias)) {
-                            Certificate cert = srcKeyStore.getCertificate(alias);
-                            if (cert != null) {
-                                newKeyStore.setCertificateEntry(alias, cert);
-                            }
-                        } else {
-                            LOG.warn("Alias '{}' is neither key nor certificate entry; skipping EXPORT.", alias);
-                        }
-                    }
-                }
-            }
-
-            if (settings.mode() == ExportMode.FILE) {
-                // save the new keystore to the selected path
-                KeyStoreUtil.saveKeyStoreToFile(newKeyStore, settings.path(), dstPassword);
-                KeyStoreData newKsData = new KeyStoreData(newKeyStore, settings.password(), settings.path());
-                manager.addKeyStoreTab(newKsData);
-            } else if (settings.mode() == ExportMode.CLIPBOARD) {
-                // copy to clipboard
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                newKeyStore.store(baos, dstPassword);
-                String base64 = java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
-                ClipboardContent content = new ClipboardContent();
-                content.putString(base64);
-                Clipboard.getSystemClipboard().setContent(content);
-                Dialogs.alert(getScene().getWindow(), Alert.AlertType.INFORMATION, MessageFormatter.i18n())
-                        .title("dua3.keystoremanager.export.to.clipboard.title")
-                        .header("dua3.keystoremanager.export.to.clipboard.header")
-                        .text("dua3.keystoremanager.export.to.clipboard.text")
-                        .showAndWait();
-            }
-        } catch (GeneralSecurityException | IOException | RuntimeException e) {
-            LOG.warn("exception exporting keystore", e);
-            Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
-                    .title("dua3.keystoremanager.error.exporting.keystore.title")
-                    .header("dua3.keystoremanager.error.exporting.keystore.header")
-                    .text(e.getMessage())
-                    .showAndWait();
-        }
+        ExportDialogs.showExportDialog(getScene().getWindow(), keyStore);
     }
 
     /**
@@ -703,21 +584,21 @@ public class KeyStorePane extends Pane {
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.creating_private_key.title")
                     .header("dua3.keystoremanager.pane.error.creating_private_key.io_error.header")
-                    .text("%s", e.getCause().getMessage())
+                    .text(MessageFormatter.literal(e.getCause().getMessage()))
                     .showAndWait();
         } catch (WrappedException e) {
             LOG.warn(ERROR_CREATING_PRIVATE_KEY, e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.creating_private_key.title")
                     .header("dua3.keystoremanager.pane.error.creating_private_key.header")
-                    .text("%s", e.getCause().getMessage())
+                    .text(MessageFormatter.literal(e.getCause().getMessage()))
                     .showAndWait();
         } catch (RuntimeException e) {
             LOG.warn("RuntimeException creating private key", e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.creating_private_key.title")
                     .header("dua3.keystoremanager.pane.error.creating_private_key.header")
-                    .text("%s", e.getMessage())
+                    .text(MessageFormatter.literal(e.getMessage()))
                     .showAndWait();
         }
     }
@@ -750,21 +631,21 @@ public class KeyStorePane extends Pane {
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.creating_public_key.title")
                     .header("dua3.keystoremanager.pane.error.creating_public_key.io_error.header")
-                    .text("%s", e.getCause().getMessage())
+                    .text(MessageFormatter.literal(e.getCause().getMessage()))
                     .showAndWait();
         } catch (WrappedException e) {
             LOG.warn(ERROR_CREATING_PUBLIC_KEY, e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.creating_public_key.title")
                     .header("dua3.keystoremanager.pane.error.creating_public_key.header")
-                    .text("%s", e.getCause().getMessage())
+                    .text(MessageFormatter.literal(e.getCause().getMessage()))
                     .showAndWait();
         } catch (RuntimeException e) {
             LOG.warn("RuntimeException creating public key", e.getCause());
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.creating_public_key.title")
                     .header("dua3.keystoremanager.pane.error.creating_public_key.header")
-                    .text("%s", e.getMessage())
+                    .text(MessageFormatter.literal(e.getMessage()))
                     .showAndWait();
         }
     }
@@ -812,7 +693,7 @@ public class KeyStorePane extends Pane {
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.certificate_verification.title")
                     .header("dua3.keystoremanager.pane.error.certificate_verification.header", alias)
-                    .text(e.getMessage())
+                    .text(MessageFormatter.literal(e.getMessage()))
                     .showAndWait();
             return false;
         }
@@ -1024,7 +905,7 @@ public class KeyStorePane extends Pane {
             Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                     .title("dua3.keystoremanager.pane.error.saving_keystore")
                     .header("dua3.keystoremanager.pane.error.saving_keystore.header")
-                    .text(e.getMessage())
+                    .text(MessageFormatter.literal(e.getMessage()))
                     .showAndWait();
         }
     }
@@ -1072,7 +953,7 @@ public class KeyStorePane extends Pane {
                         Dialogs.alert(getScene().getWindow(), Alert.AlertType.ERROR, MessageFormatter.i18n())
                                 .title("dua3.keystoremanager.pane.error.saving_keystore")
                                 .header("dua3.keystoremanager.pane.error.saving_keystore.header")
-                                .text(e.getMessage())
+                                .text(MessageFormatter.literal(e.getMessage()))
                                 .showAndWait();
                     }
                 });

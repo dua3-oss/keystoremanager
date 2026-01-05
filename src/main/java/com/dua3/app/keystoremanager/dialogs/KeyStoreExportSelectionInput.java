@@ -105,7 +105,7 @@ public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<
     // listeners to keep value map in sync with row choices
     private final Map<Row, ChangeListener<ExportChoice>> rowChoiceListeners = new HashMap<>();
 
-    public KeyStoreExportSelectionInput(KeyStoreData keystore) throws GeneralSecurityException {
+    public KeyStoreExportSelectionInput(KeyStoreData keystore) {
         this.state = new InputControlState<>(value, FXCollections::observableHashMap);
         if (this.value.get() == null) {
             this.value.set(FXCollections.observableHashMap());
@@ -124,7 +124,7 @@ public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<
         return table;
     }
 
-    private static TableView<Row> createTable(KeyStoreData keystore) throws GeneralSecurityException {
+    private static TableView<Row> createTable(KeyStoreData keystore) {
         TableView<Row> table = new TableView<>();
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
@@ -204,7 +204,7 @@ public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<
      * @return an ObservableList of Row objects representing the KeyStore entries
      * @throws GeneralSecurityException if an error occurs while accessing the KeyStore or its entries
      */
-    private static ObservableList<Row> buildRows(KeyStoreData keyStoreData) throws GeneralSecurityException {
+    private static ObservableList<Row> buildRows(KeyStoreData keyStoreData) {
         // get the selected aliases
 
         return FXCollections.observableArrayList(
