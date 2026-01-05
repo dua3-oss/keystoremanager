@@ -202,7 +202,6 @@ public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<
      *
      * @param keyStoreData the KeyStoreData instance containing the KeyStore to be processed
      * @return an ObservableList of Row objects representing the KeyStore entries
-     * @throws GeneralSecurityException if an error occurs while accessing the KeyStore or its entries
      */
     private static ObservableList<Row> buildRows(KeyStoreData keyStoreData) {
         // get the selected aliases
