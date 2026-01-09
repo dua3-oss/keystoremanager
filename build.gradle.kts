@@ -405,3 +405,79 @@ tasks.withType<DependencyUpdatesTask> {
         gradle.startParameter.isParallelProjectExecutionEnabled = false
     }
 }
+
+// === on macOS, wrap the native image as an application bundle
+tasks.register("createMacApp") {
+    group = "distribution"
+    description = "Creates a macOS .app bundle for the native executable."
+
+    // Only run this task if the operating system is macOS
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+
+    // Ensure the native binary exists before wrapping it
+    dependsOn("nativeCompile")
+
+    doLast {
+        val appName = "KeystoreManager"
+        val version = project.version.toString()
+        val buildDir = layout.buildDirectory.get().asFile
+
+        val appBundle = file("$buildDir/distributions/$appName.app")
+        val contentsDir = file("$appBundle/Contents")
+        val macOSDir = file("$contentsDir/MacOS")
+        val resourcesDir = file("$contentsDir/Resources")
+
+        // 1. Clean and Create Directory Structure
+        appBundle.deleteRecursively()
+        macOSDir.mkdirs()
+        resourcesDir.mkdirs()
+
+        // 2. Copy the Native Binary
+        val nativeBinary = file("$buildDir/native/nativeCompile/keystoremanager")
+        if (!nativeBinary.exists()) {
+            throw GradleException("Native binary not found at ${nativeBinary.path}. Run nativeCompile first.")
+        }
+
+        val targetBinary = file("$macOSDir/$appName")
+        nativeBinary.copyTo(targetBinary, overwrite = true)
+        targetBinary.setExecutable(true)
+
+        // 3. Create the Info.plist
+        // LSUIElement = false ensures it shows in the Dock
+        // NSHighResolutionCapable = true ensures Retina support
+        val plistContent = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>CFBundleExecutable</key>
+                <string>$appName</string>
+                <key>CFBundleIconFile</key>
+                <string>logo.icns</string>
+                <key>CFBundleIdentifier</key>
+                <string>com.dua3.app.keystoremanager</string>
+                <key>CFBundleName</key>
+                <string>$appName</string>
+                <key>CFBundlePackageType</key>
+                <string>APPL</string>
+                <key>CFBundleShortVersionString</key>
+                <string>$version</string>
+                <key>LSMinimumSystemVersion</key>
+                <string>11.0</string>
+                <key>NSHighResolutionCapable</key>
+                <true/>
+            </dict>
+            </plist>
+        """.trimIndent()
+
+        file("$contentsDir/Info.plist").writeText(plistContent)
+
+        // 4. Copy Icon
+        val iconFile = file("data/logo.icns")
+        if (iconFile.exists()) {
+            iconFile.copyTo(file("$resourcesDir/logo.icns"), overwrite = true)
+        }
+
+        println("✅ macOS App Bundle created at: ${appBundle.absolutePath}")
+    }
+}
