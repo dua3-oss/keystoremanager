@@ -20,6 +20,9 @@ package com.dua3.app.keystoremanager;
 
 import com.dua3.utility.fx.FxLauncher;
 import com.dua3.utility.i18n.I18N;
+import com.dua3.utility.logging.LogUtil;
+
+import java.util.Locale;
 
 /**
  * The Main class serves as the entry point of the application.
@@ -27,6 +30,12 @@ import com.dua3.utility.i18n.I18N;
  * the KeyStore Manager application.
  */
 public final class Main {
+
+    static {
+        LogUtil.initUnifiedLogging();
+        I18N.init("dua3.keystoremanager", Locale.getDefault());
+    }
+
     private Main() {}
 
     /**

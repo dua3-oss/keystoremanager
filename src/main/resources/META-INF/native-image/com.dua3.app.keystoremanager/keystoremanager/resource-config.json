@@ -8,10 +8,10 @@
         "pattern": "atlantafx/base/theme/.*\\.bss"
       },
       {
-        "pattern": "com/dua3/app/keystoremanager/logo-.*\\.png"
+        "pattern": "com/dua3/app/keystoremanager/.*\\.png"
       },
       {
-        "pattern": "dua3/keystoremanager.*\\.properties"
+        "pattern": "com/dua3/app/keystoremanager/.*\\.css"
       }
     ]
   },

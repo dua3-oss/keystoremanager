@@ -39,7 +39,7 @@ dependencyResolutionManagement {
             plugin("forbiddenapis", "de.thetaphi.forbiddenapis").version("3.10")
 
             version("bouncycastle", "1.83")
-            version("dua3-utility", "20.4.2-SNAPSHOT")
+            version("dua3-utility", "20.4.3-SNAPSHOT")
             version("ikonli", "12.4.0")
             version("jspecify", "1.0.0")
             version("junit-bom", "6.0.1")
@@ -69,7 +69,6 @@ dependencyResolutionManagement {
             library("jspecify", "org.jspecify", "jspecify").versionRef("jspecify")
             library("log4j-bom", "org.apache.logging.log4j", "log4j-bom").versionRef("log4j-bom")
             library("log4j-api", "org.apache.logging.log4j", "log4j-api").withoutVersion()
-            library("log4j-core", "org.apache.logging.log4j", "log4j-core").withoutVersion()
             library("junit-bom", "org.junit", "junit-bom").versionRef("junit-bom")
             library("junit-platform-launcher", "org.junit.platform", "junit-platform-launcher").withoutVersion()
             library("junit-jupiter-api", "org.junit.jupiter", "junit-jupiter-api").withoutVersion()

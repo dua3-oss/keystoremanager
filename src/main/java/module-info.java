@@ -28,9 +28,7 @@ open module keystoremanager {
     requires com.dua3.utility.fx;
     requires com.dua3.utility.fx.controls;
     requires com.dua3.utility.logging;
-    requires com.dua3.utility.logging.log4j;
     requires org.apache.logging.log4j;
-    requires org.apache.logging.log4j.core;
     requires java.desktop;
     requires java.logging;
     requires java.prefs;
@@ -40,7 +38,4 @@ open module keystoremanager {
     requires org.bouncycastle.pkix;
     requires org.jspecify;
     requires javafx.base;
-
-    provides com.dua3.utility.i18n.I18NProvider with com.dua3.app.keystoremanager.ApplicationI18NProvider;
-    uses com.dua3.utility.i18n.I18NProvider;
 }

@@ -50,6 +50,7 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
 import java.util.prefs.Preferences;
 
@@ -69,7 +70,7 @@ import java.util.prefs.Preferences;
  */
 public class KeyStoreManager extends Application {
     private static final Logger LOG = LogManager.getLogger(KeyStoreManager.class);
-    private static final I18N I18N = com.dua3.utility.i18n.I18N.getInstance();
+    private static final I18N I18N = com.dua3.utility.i18n.I18N.init("dua3.keystoremanager", Locale.getDefault());
 
     static {
         ApplicationUtil.initApplicationPreferences(Preferences.userNodeForPackage(KeyStoreManager.class));

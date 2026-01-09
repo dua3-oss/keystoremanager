@@ -169,7 +169,7 @@ dependencies {
     implementation(rootProject.libs.dua3.utility)
     implementation(rootProject.libs.dua3.utility.fx)
     implementation(rootProject.libs.dua3.utility.fx.controls)
-    implementation(rootProject.libs.log4j.core)
+    implementation(rootProject.libs.log4j.api)
     implementation(rootProject.libs.bouncycastle.provider)
     implementation(rootProject.libs.bouncycastle.pkix)
 
@@ -237,10 +237,8 @@ dependencies {
     // dua3 utility
     implementation(platform(rootProject.libs.dua3.utility.bom))
     implementation(rootProject.libs.dua3.utility)
-    implementation(rootProject.libs.dua3.utility.logging.log4j)
+    implementation(rootProject.libs.dua3.utility.logging)
     implementation(rootProject.libs.dua3.utility.fx)
-
-    implementation(rootProject.libs.log4j.core)
 
     // JUnit
     testImplementation(platform(rootProject.libs.junit.bom))
@@ -261,10 +259,6 @@ testing {
     suites {
         val test by getting(JvmTestSuite::class) {
             useJUnitJupiter()
-
-            dependencies {
-                implementation(rootProject.libs.log4j.core)
-            }
 
             targets {
                 all {
