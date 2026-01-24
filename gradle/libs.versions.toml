@@ -1,26 +1,22 @@
 [versions]
 projectVersion = "0.1.0-SNAPSHOT"
 bouncycastle = "1.83"
-dua3-utility = "20.4.3-SNAPSHOT"
-sawmill = "0.1-SNAPSHOT"
+dua3-utility = "21-rc"
+slb4j = "0.1-rc"
 ikonli = "12.4.0"
 jspecify = "1.0.0"
-junit-bom = "6.0.1"
+junit-bom = "6.0.2"
 log4j-bom = "2.25.3"
 atlantafx = "2.1.0"
 spotbugs = "4.9.8"
 
 [libraries]
 atlantafx = { group = "io.github.mkpaz", name = "atlantafx-base", version.ref = "atlantafx" }
-sawmill-lumberjack = { group = "com.dua3.sawmill", name = "lumberjack", version.ref = "sawmill" }
+slb4j = { group = "org.slb4j", name = "slb4j", version.ref = "slb4j" }
 bouncycastle-provider = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 bouncycastle-pkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 dua3-utility-bom = { group = "com.dua3.utility", name = "utility-bom", version.ref = "dua3-utility" }
 dua3-utility = { group = "com.dua3.utility", name = "utility" }
-dua3-utility-db = { group = "com.dua3.utility", name = "utility-db" }
-dua3-utility-logging = { group = "com.dua3.utility", name = "utility-logging" }
-dua3-utility-logging-log4j = { group = "com.dua3.utility", name = "utility-logging-log4j" }
-dua3-utility-swing = { group = "com.dua3.utility", name = "utility-swing" }
 dua3-utility-fx = { group = "com.dua3.utility", name = "utility-fx" }
 dua3-utility-fx-controls = { group = "com.dua3.utility", name = "utility-fx-controls" }
 dua3-utility-fx-db = { group = "com.dua3.utility", name = "utility-fx-db" }

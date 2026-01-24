@@ -239,7 +239,7 @@ dependencies {
     implementation(rootProject.libs.dua3.utility)
     implementation(rootProject.libs.dua3.utility.fx)
 
-    implementation(rootProject.libs.sawmill.lumberjack)
+    implementation(rootProject.libs.slb4j)
 
     // JUnit
     testImplementation(platform(rootProject.libs.junit.bom))
@@ -292,54 +292,6 @@ tasks.javadoc {
         addStringOption("Xdoclint:all,-missing/private")
     }
 }
-
-// === verify JavaFX is available
-tasks.register("verifyJavaFxSetup") {
-    group = "verification"
-    description = "Verifies that JavaFX is set up correctly."
-
-    doLast {
-        try {
-            Class.forName("javafx.application.Application")
-            println("JavaFX is correctly set up.")
-        } catch (e: ClassNotFoundException) {
-            throw GradleException("JavaFX is not set up correctly. Please ensure JavaFX is installed and available in your runtime environment.")
-        }
-    }
-}
-
-tasks.withType<JavaExec> {
-    dependsOn("verifyJavaFxSetup")
-    outputs.upToDateWhen { false }
-}
-
-// === TESTDATA DOWNLOAD ===
-val testDataFiles = listOf(
-    mapOf(
-        "url" to "https://github.com/progit/progit2/releases/download/2.1.412/progit.pdf",
-        "file" to "${rootDir}/testData/A/progit-2.1.412.pdf"
-    ),
-    mapOf(
-        "url" to "https://github.com/progit/progit2/releases/download/2.1.438/progit.pdf",
-        "file" to "${rootDir}/testData/B/progit-2.1.438.pdf"
-    ),
-    mapOf(
-        "url" to "https://math.hws.edu/eck/cs424/downloads/graphicsbook-1.0.1.pdf",
-        "file" to "${rootDir}/testData/A/graphicsbook-1.0.1.pdf"
-    ),
-    mapOf(
-        "url" to "https://math.hws.edu/eck/cs424/downloads/graphicsbook-1.3.1.pdf",
-        "file" to "${rootDir}/testData/B/graphicsbook-1.3.1.pdf"
-    ),
-    mapOf(
-        "url" to "https://docs.oracle.com/javase/specs/jls/se17/jls17.pdf",
-        "file" to "${rootDir}/testData/A/The Java Language Specification-Java SE 17 Edition.pdf"
-    ),
-    mapOf(
-        "url" to "https://docs.oracle.com/javase/specs/jls/se21/jls21.pdf",
-        "file" to "${rootDir}/testData/B/The Java Language Specification-Java SE 21 Edition.pdf"
-    ),
-)
 
 // === FORBIDDEN APIS ===
 tasks.withType(de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis::class).configureEach {

@@ -18,7 +18,7 @@
  */
 package com.dua3.app.keystoremanager;
 
-import com.dua3.sawmill.lumberjack.Lumberjack;
+import org.slb4j.SLB4J;
 import com.dua3.utility.fx.FxLauncher;
 import com.dua3.utility.i18n.I18N;
 
@@ -32,7 +32,7 @@ import java.util.Locale;
 public final class Main {
 
     static {
-        Lumberjack.init();
+        SLB4J.init();
         I18N.init("dua3.keystoremanager", Locale.getDefault());
     }
 
