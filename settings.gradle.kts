@@ -40,6 +40,7 @@ dependencyResolutionManagement {
 
             version("bouncycastle", "1.83")
             version("dua3-utility", "20.4.3-SNAPSHOT")
+            version("sawmill", "0.1-SNAPSHOT")
             version("ikonli", "12.4.0")
             version("jspecify", "1.0.0")
             version("junit-bom", "6.0.1")
@@ -49,6 +50,7 @@ dependencyResolutionManagement {
 
             library("atlantafx", "io.github.mkpaz", "atlantafx-base").versionRef("atlantafx")
 
+            library("sawmill-lumberjack", "com.dua3.sawmill", "lumberjack").versionRef("sawmill")
             library("bouncycastle-provider", "org.bouncycastle", "bcprov-jdk18on").versionRef("bouncycastle")
             library("bouncycastle-pkix", "org.bouncycastle", "bcpkix-jdk18on").versionRef("bouncycastle")
             library("dua3-utility-bom", "com.dua3.utility", "utility-bom").versionRef("dua3-utility")

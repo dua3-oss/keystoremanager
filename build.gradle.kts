@@ -237,8 +237,9 @@ dependencies {
     // dua3 utility
     implementation(platform(rootProject.libs.dua3.utility.bom))
     implementation(rootProject.libs.dua3.utility)
-    implementation(rootProject.libs.dua3.utility.logging)
     implementation(rootProject.libs.dua3.utility.fx)
+
+    implementation(rootProject.libs.sawmill.lumberjack)
 
     // JUnit
     testImplementation(platform(rootProject.libs.junit.bom))
