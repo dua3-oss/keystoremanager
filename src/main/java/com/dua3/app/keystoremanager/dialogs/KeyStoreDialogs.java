@@ -97,7 +97,7 @@ public final class KeyStoreDialogs {
                 .title(I18N.get("dua3.keystoremanager.dialog.create_keystore.title"))
                 .inputFile(ID_FOLDER, I18N.get("dua3.keystoremanager.dialog.create_keystore.folder"), initialFolder, FileDialogMode.DIRECTORY, true, Collections.emptyList(), vf.directory(I18N.get("dua3.keystoremanager.dialog.create_keystore.folder.select")))
                 .inputString(ID_NAME, I18N.get("dua3.keystoremanager.dialog.create_keystore.name"), () -> "", vf.nonEmpty(I18N.get("dua3.keystoremanager.dialog.create_keystore.name.required")))
-                .inputComboBox(ID_KEY_TYPE, I18N.get("dua3.keystoremanager.dialog.create_keystore.type"), () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.valuesReadble()))
+                .inputComboBox(ID_KEY_TYPE, I18N.get("dua3.keystoremanager.dialog.create_keystore.type"), () -> KeyStoreType.PKCS12, List.of(KeyStoreType.valuesReadble()))
                 .inputPasswordWithVerification(ID_PASSWORD, I18N.get("dua3.keystoremanager.dialog.create_keystore.password"), I18N.get("dua3.keystoremanager.dialog.create_keystore.password.repeat"))
                 .showAndWait();
     }

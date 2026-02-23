@@ -66,6 +66,7 @@ graalvmNative {
             imageName.set("keystoremanager")
             mainClass.set("com.dua3.app.keystoremanager.Main")
             buildArgs.addAll(
+                "-Os",
                 "--enable-native-access=ALL-UNNAMED",
                 "--enable-native-access=javafx.graphics"
             )

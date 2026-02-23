@@ -20,6 +20,7 @@ package com.dua3.app.keystoremanager.dialogs;
 
 import com.dua3.app.keystoremanager.KeyStoreData;
 import com.dua3.app.keystoremanager.KeyStoreEntryType;
+import com.dua3.utility.fx.controls.ObjectInputControlState;
 import com.dua3.utility.i18n.I18N;
 import com.dua3.utility.crypt.KeyStoreUtil;
 import com.dua3.utility.fx.controls.InputControl;
@@ -106,7 +107,7 @@ public class KeyStoreExportSelectionInput implements InputControl<ObservableMap<
     private final Map<Row, ChangeListener<ExportChoice>> rowChoiceListeners = new HashMap<>();
 
     public KeyStoreExportSelectionInput(KeyStoreData keystore) {
-        this.state = new InputControlState<>(value, FXCollections::observableHashMap);
+        this.state = new ObjectInputControlState<>(value, FXCollections::observableHashMap);
         if (this.value.get() == null) {
             this.value.set(FXCollections.observableHashMap());
         }

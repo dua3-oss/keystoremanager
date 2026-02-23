@@ -182,14 +182,13 @@ public final class PrivateKeyDialogs {
         InputDialogBuilder builder = Dialogs.input(owner)
                 .title(I18N.get("dua3.keystoremanager.dialog.new_private_key.title"))
                 .header(I18N.get("dua3.keystoremanager.dialog.new_private_key.header"))
-                .inputComboBox(ID_PARENT, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.parent.label"), () -> aliasStandAlone, String.class, parentAliases);
+                .inputComboBox(ID_PARENT, I18N.get("dua3.keystoremanager.dialog.new_private_key.field.parent.label"), () -> aliasStandAlone, parentAliases);
 
         // add fields
         Stream.of(Fields.values())
                 .forEach(field -> {
                     switch (field) {
-                        case KEY_SIZE ->
-                                builder.inputComboBox(field.id, field.label, () -> 2048, Integer.class, keySizes);
+                        case KEY_SIZE -> builder.inputComboBox(field.id, field.label, () -> 2048, keySizes);
                         case ALGORITHM -> builder.inputComboBox(field.id, field.label, () -> AsymmetricAlgorithm.RSA,
                                 AsymmetricAlgorithm.class,
                                 algorithm -> {

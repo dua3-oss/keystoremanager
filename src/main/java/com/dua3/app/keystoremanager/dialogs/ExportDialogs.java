@@ -103,7 +103,7 @@ public final class ExportDialogs {
 
         builder.page(EXPORT_SELECT_ITEMS, Dialogs.inputDialogPane(MessageFormatter.i18n())
                 .header("dua3.keystoremanager.dialog.export.header.warning")
-                .addInput(SELECTED_ALIASES, (Class<ObservableMap<String, KeyStoreExportSelectionInput.ExportChoice>>) (Class<?>) ObservableMap.class, FXCollections::observableHashMap, keyStoreExportSelectionInput)
+                .addInput(SELECTED_ALIASES, FXCollections::observableHashMap, keyStoreExportSelectionInput)
                 .resultHandler((btn, data) -> {
                     ObservableMap<String, KeyStoreExportSelectionInput.ExportChoice> items = (ObservableMap<String, KeyStoreExportSelectionInput.ExportChoice>) data.get(SELECTED_ALIASES);
                     itemsToExport.set(items);
@@ -114,7 +114,7 @@ public final class ExportDialogs {
         // *** Keystore Settings
         builder.page(EXPORT_SETTINGS, Dialogs.inputDialogPane(MessageFormatter.i18n())
                 .header("dua3.keystoremanager.dialog.export.header.settings")
-                .inputComboBox(ID_KEYSTORE_TYPE, "dua3.keystoremanager.dialog.export.type", () -> KeyStoreType.PKCS12, KeyStoreType.class, List.of(KeyStoreType.values()))
+                .inputComboBox(ID_KEYSTORE_TYPE, "dua3.keystoremanager.dialog.export.type", () -> KeyStoreType.PKCS12, List.of(KeyStoreType.values()))
                 .inputPasswordWithVerification(ID_KEYSTORE_PASSWORD, "dua3.keystoremanager.dialog.export.password", "dua3.keystoremanager.dialog.export.password.repeat")
                 .resultHandler((btn, data) -> createKeyStoreForExport(owner, keystore, data, itemsToExport, newKeystorePassword, newKeystore, newKeystoreType))
                 .next(Map.of(
