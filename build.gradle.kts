@@ -101,6 +101,7 @@ jlink {
     jpackage {
         // Use a clean, OS-agnostic default; users may override with -PinstallerType=<dmg|pkg|msi|exe|deb|rpm>
         vendor = "dua3"
+
         // jpackage requires a numeric version; strip qualifiers
         val ver = (project.version as String).replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
         appVersion = if (ver.isNotBlank()) ver else "0.0.0"
