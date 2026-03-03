@@ -13,12 +13,12 @@ projectVersion = "0.1.0-SNAPSHOT"
 
 atlantafx = "2.1.0"
 bouncycastle = "1.83"
-dua3-utility = "21.1.0"
+dua3-utility = "22.0.0-beta3"
 ikonli = "12.4.0"
 jspecify = "1.0.0"
 junit-bom = "6.0.3"
 log4j-bom = "2.25.3"
-slb4j = "0.5.1"
+slb4j = "0.7.0"
 spotbugs = "4.9.8"
 
 [libraries]

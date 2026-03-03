@@ -572,7 +572,7 @@ public class KeyStorePane extends Pane {
                                             .text("dua3.keystoremanager.pane.info.certificate_created.text", alias)
                                             .showAndWait();
                                 } catch (GeneralSecurityException | IOException e) {
-                                    throw LangUtil.wrapException(e);
+                                    LangUtil.throwAsRuntimeException(e);
                                 }
                             })
                     );
@@ -620,7 +620,7 @@ public class KeyStorePane extends Pane {
                             SecretKey key = KeyUtil.generateSecretKey(algorithm.getDefaultKeySize(), algorithm);
                             KeyStoreUtil.storeSecretKey(ks, alias, key, keyStore.password().toCharArray());
                         } catch (GeneralSecurityException e) {
-                            throw LangUtil.wrapException(e);
+                            LangUtil.throwAsRuntimeException(e);
                         }
                     });
         } catch (UncheckedIOException e) {
