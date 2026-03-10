@@ -1,9 +1,9 @@
 [plugins]
-cabe = { id = "com.dua3.cabe", version = "3.3.0" }
+cabe = { id = "com.dua3.cabe", version = "4.2.0" }
 forbiddenapis = { id = "de.thetaphi.forbiddenapis", version = "3.10" }
-graalvm = { id = "org.graalvm.buildtools.native", version = "0.11.4" }
+graalvm = { id = "org.graalvm.buildtools.native", version = "0.11.5" }
 jdk = { id = "com.dua3.gradle.jdkprovider", version = "0.4.0" }
-jlink = { id = "org.beryx.jlink", version = "3.2.0" }
+jlink = { id = "org.beryx.jlink", version = "3.2.1" }
 spotbugs = { id = "com.github.spotbugs", version = "6.4.8" }
 test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
 versions = { id = "com.github.ben-manes.versions", version = "0.53.0" }
@@ -13,12 +13,12 @@ projectVersion = "0.1.0"
 
 atlantafx = "2.1.0"
 bouncycastle = "1.83"
-dua3-utility = "22.0.0-beta3"
+dua3-utility = "22.0.0"
 ikonli = "12.4.0"
 jspecify = "1.0.0"
 junit-bom = "6.0.3"
 log4j-bom = "2.25.3"
-slb4j = "0.7.0"
+slb4j = "0.7.2"
 spotbugs = "4.9.8"
 
 [libraries]
