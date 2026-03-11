@@ -37,7 +37,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '25'
-          distribution: 'temurin'
+          distribution: 'zulu'
           architecture: ${{ matrix.javaArch || 'x64' }}
 
       - name: Set up Gradle
