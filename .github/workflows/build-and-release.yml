@@ -57,7 +57,7 @@ jobs:
           P12_B64: ${{ secrets.MAC_SIGN_CERT_P12 }}
           P12_PASS: ${{ secrets.MAC_SIGN_CERT_PASSWORD }}
           MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
-        if: matrix.os == 'macos-14' && github.event_name != 'pull_request' && P12_B64 != '' && P12_PASS != '' && MAC_SIGN_IDENTITY != ''
+        if: matrix.os == 'macos-14' && github.event_name != 'pull_request' && env.P12_B64 != '' && env.P12_PASS != '' && env.MAC_SIGN_IDENTITY != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -149,7 +149,7 @@ jobs:
           APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-        if: matrix.os == 'macos-14' && (APPLE_API_KEY != '' && APPLE_API_KEY_ID != '' && APPLE_API_ISSUER_ID != '')
+        if: matrix.os == 'macos-14' && (env.APPLE_API_KEY != '' && env.APPLE_API_KEY_ID != '' && env.APPLE_API_ISSUER_ID != '')
         shell: bash
 
         run: |
