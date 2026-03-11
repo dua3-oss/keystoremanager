@@ -136,7 +136,7 @@ jobs:
 #          if [ -d "$APP_IMAGE_DIR" ]; then
 #            (cd build/jpackage && zip -r ../artifacts/KeystoreManager-windows-arm.zip "$(basename "$APP_IMAGE_DIR")")
 #          else
-#            echo "App image not found at $APP_IMAGE_DIR" >&2
+#            echo "App image was not found at $APP_IMAGE_DIR" >&2
 #            exit 1
 #          fi
 
