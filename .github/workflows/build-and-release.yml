@@ -120,28 +120,28 @@ jobs:
             ./gradlew --no-daemon --stacktrace createMacApp
           fi
 
-#      # Windows ARM: Build app-image only (no native installer)
-#      - name: Create Windows ARM app-image (jpackageImage)
-#        if: matrix.artifactSuffix == 'windows-arm'
-#        shell: bash
-#        run: |
-#          set -euo pipefail
-#          ./gradlew --no-daemon --stacktrace jpackageImage
-#
-#      # Windows ARM: Zip the app-image for distribution
-#      - name: Zip Windows ARM app-image
-#        if: matrix.artifactSuffix == 'windows-arm'
-#        shell: bash
-#        run: |
-#          set -euo pipefail
-#          mkdir -p artifacts
-#          APP_IMAGE_DIR="build/jpackage/KeystoreManager"
-#          if [ -d "$APP_IMAGE_DIR" ]; then
-#            (cd build/jpackage && zip -r ../artifacts/KeystoreManager-windows-arm.zip "$(basename "$APP_IMAGE_DIR")")
-#          else
-#            echo "App image was not found at $APP_IMAGE_DIR" >&2
-#            exit 1
-#          fi
+      # Windows ARM: Build app-image only (no native installer)
+      - name: Create Windows ARM app-image (jpackageImage)
+        if: matrix.artifactSuffix == 'windows-arm'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon --stacktrace jpackageImage
+
+      # Windows ARM: Zip the app-image for distribution
+      - name: Zip Windows ARM app-image
+        if: matrix.artifactSuffix == 'windows-arm'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          APP_IMAGE_DIR="build/jpackage/KeystoreManager"
+          if [ -d "$APP_IMAGE_DIR" ]; then
+            (cd build/jpackage && zip -r ../artifacts/KeystoreManager-windows-arm.zip "$(basename "$APP_IMAGE_DIR")")
+          else
+            echo "App image was not found at $APP_IMAGE_DIR" >&2
+            exit 1
+          fi
 
       # ---------- Notarize and staple macOS DMG (optional) ----------
       - name: Notarize and staple DMG
