@@ -22,9 +22,9 @@ jobs:
             artifactSuffix: windows
             javaArch: x64
           # Windows ARM: create app-image only (no installer) and zip it
-          - os: windows-2025
-            artifactSuffix: windows-arm
-            javaArch: aarch64
+#          - os: windows-2025
+#            artifactSuffix: windows-arm
+#            javaArch: aarch64
           - os: macos-14
             installerType: dmg
             artifactSuffix: macos-arm
@@ -116,6 +116,9 @@ jobs:
           set -euo pipefail
           echo "Using SIGNING_ARGS='${SIGNING_ARGS}'"
           ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }} ${SIGNING_ARGS:-}
+          if [ "${{ matrix.os }}" == "macos-14" ]; then
+            ./gradlew --no-daemon --stacktrace createMacApp
+          fi
 
 #      # Windows ARM: Build app-image only (no native installer)
 #      - name: Create Windows ARM app-image (jpackageImage)
@@ -155,7 +158,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "$APPLE_API_KEY_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
-          DMG=(build/jpackage/*.dmg)
+          DMG=(build/distributions/*.DMG build/jpackage/*.dmg)
           if [ -e "${DMG[0]}" ]; then
             xcrun notarytool submit "${DMG[0]}" --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait
             xcrun stapler staple "${DMG[0]}"
@@ -181,8 +184,8 @@ jobs:
         run: |
           mkdir -p artifacts
           shopt -s nullglob
-          # Look for common installer extensions in build/jpackage
-          for f in build/jpackage/*.{dmg,pkg,msi,exe,deb,rpm}; do
+          # Look for common installer extensions in build/jpackage and build/distributions
+          for f in build/jpackage/*.{dmg,pkg,msi,exe,deb,rpm} build/distributions/*.DMG; do
             [ -e "$f" ] || continue
             cp -v "$f" artifacts/
           done
