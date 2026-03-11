@@ -53,7 +53,7 @@ jobs:
 
       # ---------- Platform-specific signing preparation ----------
       - name: Prepare macOS code signing (keychain)
-        if: matrix.os == 'macos-14' && secrets.MAC_SIGN_CERT_P12 != '' && secrets.MAC_SIGN_CERT_PASSWORD != '' && secrets.MAC_SIGN_IDENTITY != ''
+        if: matrix.os == 'macos-14' && github.event_name != 'pull_request' && secrets.MAC_SIGN_CERT_P12 != '' && secrets.MAC_SIGN_CERT_PASSWORD != '' && secrets.MAC_SIGN_IDENTITY != ''
         shell: bash
         env:
           P12_B64: ${{ secrets.MAC_SIGN_CERT_P12 }}
@@ -74,36 +74,36 @@ jobs:
           echo "MAC_SIGN_IDENTITY=$MAC_SIGN_IDENTITY" >> "$GITHUB_ENV"
           echo "SIGNING_ARGS=-Pmac.sign=true -Pmac.identity=$MAC_SIGN_IDENTITY -Pmac.keychain=$KEYCHAIN" >> "$GITHUB_ENV"
 
-      - name: Prepare Windows code signing (PFX)
-        if: matrix.os == 'windows-latest' && secrets.WIN_CERT_PFX != '' && secrets.WIN_CERT_PASSWORD != '' && secrets.WIN_CERT_ALIAS != ''
-        shell: bash
-        env:
-          PFX_B64: ${{ secrets.WIN_CERT_PFX }}
-          PFX_PASS: ${{ secrets.WIN_CERT_PASSWORD }}
-          PFX_ALIAS: ${{ secrets.WIN_CERT_ALIAS }}
-        run: |
-          set -euo pipefail
-          KS="$RUNNER_TEMP/win-signing.pfx"
-          echo "$PFX_B64" | base64 --decode > "$KS"
-          # Common timestamp server
-          TS_OPTS="/tr http://timestamp.digicert.com /td sha256 /fd sha256"
-          echo "SIGNING_ARGS=-Pwin.sign=true -Pwin.keystore=$KS -Pwin.storepass=$PFX_PASS -Pwin.alias=$PFX_ALIAS -Pwin.signingOptions=$TS_OPTS" >> "$GITHUB_ENV"
-
-      - name: Prepare Linux package signing (GPG for .deb)
-        if: matrix.os == 'ubuntu-latest' && secrets.LINUX_GPG_PRIVATE_KEY != '' && secrets.LINUX_GPG_PASSPHRASE != '' && secrets.LINUX_GPG_KEY_ID != ''
-        shell: bash
-        env:
-          GPG_KEY_B64: ${{ secrets.LINUX_GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
-          GPG_KEY_ID: ${{ secrets.LINUX_GPG_KEY_ID }}
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y dpkg-sig
-          echo "$GPG_KEY_B64" | base64 --decode > "$RUNNER_TEMP/gpg.key.asc"
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --import "$RUNNER_TEMP/gpg.key.asc"
-          echo "GPG_KEY_ID=$GPG_KEY_ID" >> "$GITHUB_ENV"
-          echo "GPG_PASSPHRASE=$GPG_PASSPHRASE" >> "$GITHUB_ENV"
+#      - name: Prepare Windows code signing (PFX)
+#        if: matrix.os == 'windows-latest' && secrets.WIN_CERT_PFX != '' && secrets.WIN_CERT_PASSWORD != '' && secrets.WIN_CERT_ALIAS != ''
+#        shell: bash
+#        env:
+#          PFX_B64: ${{ secrets.WIN_CERT_PFX }}
+#          PFX_PASS: ${{ secrets.WIN_CERT_PASSWORD }}
+#          PFX_ALIAS: ${{ secrets.WIN_CERT_ALIAS }}
+#        run: |
+#          set -euo pipefail
+#          KS="$RUNNER_TEMP/win-signing.pfx"
+#          echo "$PFX_B64" | base64 --decode > "$KS"
+#          # Common timestamp server
+#          TS_OPTS="/tr http://timestamp.digicert.com /td sha256 /fd sha256"
+#          echo "SIGNING_ARGS=-Pwin.sign=true -Pwin.keystore=$KS -Pwin.storepass=$PFX_PASS -Pwin.alias=$PFX_ALIAS -Pwin.signingOptions=$TS_OPTS" >> "$GITHUB_ENV"
+#
+#      - name: Prepare Linux package signing (GPG for .deb)
+#        if: matrix.os == 'ubuntu-latest' && secrets.LINUX_GPG_PRIVATE_KEY != '' && secrets.LINUX_GPG_PASSPHRASE != '' && secrets.LINUX_GPG_KEY_ID != ''
+#        shell: bash
+#        env:
+#          GPG_KEY_B64: ${{ secrets.LINUX_GPG_PRIVATE_KEY }}
+#          GPG_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
+#          GPG_KEY_ID: ${{ secrets.LINUX_GPG_KEY_ID }}
+#        run: |
+#          set -euo pipefail
+#          sudo apt-get update
+#          sudo apt-get install -y dpkg-sig
+#          echo "$GPG_KEY_B64" | base64 --decode > "$RUNNER_TEMP/gpg.key.asc"
+#          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --import "$RUNNER_TEMP/gpg.key.asc"
+#          echo "GPG_KEY_ID=$GPG_KEY_ID" >> "$GITHUB_ENV"
+#          echo "GPG_PASSPHRASE=$GPG_PASSPHRASE" >> "$GITHUB_ENV"
 
       # ---------- Create artifacts ----------
       # Default: Create installer with jpackage (with optional signing args)
@@ -117,28 +117,28 @@ jobs:
           echo "Using SIGNING_ARGS='${SIGNING_ARGS}'"
           ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }} ${SIGNING_ARGS:-}
 
-      # Windows ARM: Build app-image only (no native installer)
-      - name: Create Windows ARM app-image (jpackageImage)
-        if: matrix.artifactSuffix == 'windows-arm'
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./gradlew --no-daemon --stacktrace jpackageImage
-
-      # Windows ARM: Zip the app-image for distribution
-      - name: Zip Windows ARM app-image
-        if: matrix.artifactSuffix == 'windows-arm'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts
-          APP_IMAGE_DIR="build/jpackage/KeystoreManager"
-          if [ -d "$APP_IMAGE_DIR" ]; then
-            (cd build/jpackage && zip -r ../artifacts/KeystoreManager-windows-arm.zip "$(basename "$APP_IMAGE_DIR")")
-          else
-            echo "App image not found at $APP_IMAGE_DIR" >&2
-            exit 1
-          fi
+#      # Windows ARM: Build app-image only (no native installer)
+#      - name: Create Windows ARM app-image (jpackageImage)
+#        if: matrix.artifactSuffix == 'windows-arm'
+#        shell: bash
+#        run: |
+#          set -euo pipefail
+#          ./gradlew --no-daemon --stacktrace jpackageImage
+#
+#      # Windows ARM: Zip the app-image for distribution
+#      - name: Zip Windows ARM app-image
+#        if: matrix.artifactSuffix == 'windows-arm'
+#        shell: bash
+#        run: |
+#          set -euo pipefail
+#          mkdir -p artifacts
+#          APP_IMAGE_DIR="build/jpackage/KeystoreManager"
+#          if [ -d "$APP_IMAGE_DIR" ]; then
+#            (cd build/jpackage && zip -r ../artifacts/KeystoreManager-windows-arm.zip "$(basename "$APP_IMAGE_DIR")")
+#          else
+#            echo "App image not found at $APP_IMAGE_DIR" >&2
+#            exit 1
+#          fi
 
       # ---------- Notarize and staple macOS DMG (optional) ----------
       - name: Notarize and staple DMG
@@ -159,17 +159,17 @@ jobs:
             echo "No DMG found to notarize"
           fi
 
-      # ---------- Sign Linux .deb after build (optional) ----------
-      - name: Sign .deb with GPG
-        if: matrix.os == 'ubuntu-latest' && env.GPG_KEY_ID != ''
-        shell: bash
-        run: |
-          set -euo pipefail
-          for DEB in build/jpackage/*.deb; do
-            [ -e "$DEB" ] || continue
-            echo "Signing $DEB"
-            dpkg-sig --sign builder -k "$GPG_KEY_ID" --gpg-options "--batch --yes --pinentry-mode loopback --passphrase $GPG_PASSPHRASE" "$DEB"
-          done
+#      # ---------- Sign Linux .deb after build (optional) ----------
+#      - name: Sign .deb with GPG
+#        if: matrix.os == 'ubuntu-latest' && env.GPG_KEY_ID != ''
+#        shell: bash
+#        run: |
+#          set -euo pipefail
+#          for DEB in build/jpackage/*.deb; do
+#            [ -e "$DEB" ] || continue
+#            echo "Signing $DEB"
+#            dpkg-sig --sign builder -k "$GPG_KEY_ID" --gpg-options "--batch --yes --pinentry-mode loopback --passphrase $GPG_PASSPHRASE" "$DEB"
+#          done
 
       - name: Collect installer artifacts
         id: collect
