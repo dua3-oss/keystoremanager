@@ -85,4 +85,4 @@ Contact
 -------
 - Author: Axel Howind (dua3)
 - Email: axh@dua3.com
-- Repository: https://github.com/xzel23/keystoremnager
+- Repository: https://github.com/dua3-oss/keystoremanager
