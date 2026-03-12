@@ -118,7 +118,7 @@ jlink {
         val os = org.gradle.internal.os.OperatingSystem.current()
         // Users can pass platform-specific options on the command line
         if (os.isLinux) {
-            installerOptions.addAll(listOf("--linux-app-release", ""))
+            installerOptions.addAll("--linux-app-release", "")
         }
         val iconFile = when {
             os.isMacOsX -> project.file("data/logo.icns")
@@ -137,11 +137,11 @@ jlink {
         if (macSign) {
             val identity = (project.findProperty("mac.identity") as String?)?.trim().orEmpty()
             if (identity.isNotEmpty()) {
-                installerOptions.addAll(listOf("--mac-sign"))
-                installerOptions.addAll(listOf("--mac-signing-key-user-name", identity))
+                installerOptions.addAll("--mac-sign")
+                installerOptions.addAll("--mac-signing-key-user-name", identity)
                 val keychain = (project.findProperty("mac.keychain") as String?)?.trim()
                 if (!keychain.isNullOrEmpty()) {
-                    installerOptions.addAll(listOf("--mac-signing-keychain", keychain))
+                    installerOptions.addAll("--mac-signing-keychain", keychain)
                 }
             }
         }
@@ -153,18 +153,17 @@ jlink {
             val ksp = (project.findProperty("win.storepass") as String?)?.trim().orEmpty()
             val alias = (project.findProperty("win.alias") as String?)?.trim().orEmpty()
             if (ks.isNotEmpty() && ksp.isNotEmpty() && alias.isNotEmpty()) {
-                installerOptions.addAll(listOf(
+                installerOptions.addAll(
                         "--win-sign",
                         "--win-signing-key-store", ks,
                         "--win-signing-key-store-pass", ksp,
                         "--win-signing-key-store-type", "pkcs12",
                         "--win-signing-key-alias", alias
-                    )
                 )
                 val signOpts = (project.findProperty("win.signingOptions") as String?)?.trim()
                 if (!signOpts.isNullOrEmpty()) {
                     // pass additional options to the signtool invocation (e.g. timestamp server)
-                    installerOptions.addAll(listOf("--win-signing-options", signOpts))
+                    installerOptions.addAll("--win-signing-options", signOpts)
                 }
             }
         }

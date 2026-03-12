@@ -3,7 +3,7 @@ cabe = { id = "com.dua3.cabe", version = "4.2.0" }
 forbiddenapis = { id = "de.thetaphi.forbiddenapis", version = "3.10" }
 graalvm = { id = "org.graalvm.buildtools.native", version = "0.11.5" }
 jdk = { id = "com.dua3.gradle.jdkprovider", version = "0.4.0" }
-jlink = { id = "org.beryx.jlink", version = "3.2.1" }
+jlink = { id = "org.beryx.jlink", version = "3.3.0-beta" }
 spotbugs = { id = "com.github.spotbugs", version = "6.4.8" }
 test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
 versions = { id = "com.github.ben-manes.versions", version = "0.53.0" }
