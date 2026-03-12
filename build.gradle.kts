@@ -114,10 +114,12 @@ jlink {
         // Common runtime options
         jvmArgs = listOf("-Dprism.allowhidpi=true", "--enable-native-access=javafx.graphics,ALL-UNNAMED")
 
-        // Users can pass platform-specific options on the command line
-
         // Use platform-appropriate icon from the data/ folder at project root
         val os = org.gradle.internal.os.OperatingSystem.current()
+        // Users can pass platform-specific options on the command line
+        if (os.isLinux) {
+            installerOptions.addAll(listOf("--linux-app-release", ""))
+        }
         val iconFile = when {
             os.isMacOsX -> project.file("data/logo.icns")
             os.isWindows -> project.file("data/logo.ico")

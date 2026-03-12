@@ -28,6 +28,9 @@ jobs:
           - os: macos-14
             installerType: dmg
             artifactSuffix: macos-arm
+          - os: ubuntu-latest
+            installerType: rpm
+            artifactSuffix: linux-rpm
 
     steps:
       - name: Checkout
@@ -117,7 +120,7 @@ jobs:
           echo "Using SIGNING_ARGS='${SIGNING_ARGS}'"
           ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }} ${SIGNING_ARGS:-}
           if [ "${{ matrix.os }}" == "macos-14" ]; then
-            ./gradlew --no-daemon --stacktrace createMacApp
+            ./gradlew --no-daemon --stacktrace createNativeDmg
           fi
 
       # Windows ARM: Build app-image only (no native installer)
@@ -158,7 +161,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "$APPLE_API_KEY_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
-          DMG=(build/distributions/*.DMG build/jpackage/*.dmg)
+          DMG=(build/distributions/*.dmg build/distributions/*.DMG build/jpackage/*.dmg)
           if [ -e "${DMG[0]}" ]; then
             xcrun notarytool submit "${DMG[0]}" --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --wait
             xcrun stapler staple "${DMG[0]}"
@@ -185,7 +188,7 @@ jobs:
           mkdir -p artifacts
           shopt -s nullglob
           # Look for common installer extensions in build/jpackage and build/distributions
-          for f in build/jpackage/*.{dmg,pkg,msi,exe,deb,rpm} build/distributions/*.DMG; do
+          for f in build/jpackage/*.{dmg,pkg,msi,exe,deb,rpm} build/distributions/*.{dmg,DMG}; do
             [ -e "$f" ] || continue
             cp -v "$f" artifacts/
           done
@@ -220,6 +223,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts
+          merge-multiple: true
 
       - name: Display downloaded files
         run: |
@@ -228,7 +232,6 @@ jobs:
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release-artifacts/**
+          files: release-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
