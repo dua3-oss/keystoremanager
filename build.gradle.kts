@@ -171,22 +171,15 @@ jlink {
 }
 
 // Copy jpackaged installers to the distribution directory
-tasks.named("jpackage") {
-    doLast {
-        val buildDir = layout.buildDirectory.get().asFile
-        val jpackageDir = file("$buildDir/jpackage")
-        val distributionsDir = file("$buildDir/distributions")
-
-        if (jpackageDir.exists()) {
-            jpackageDir.listFiles { _, name ->
-                name.endsWith(".dmg") || name.endsWith(".pkg") || name.endsWith(".exe") ||
-                        name.endsWith(".msi") || name.endsWith(".deb") || name.endsWith(".rpm")
-            }?.forEach { file ->
-                println("Copying ${file.name} to ${distributionsDir.absolutePath}")
-                file.copyTo(file("${distributionsDir.absolutePath}/${file.name}"), overwrite = true)
-            }
-        }
+val copyJpackageInstallers by tasks.registering(Sync::class) {
+    from(layout.buildDirectory.dir("jpackage")) {
+        include("*.dmg", "*.pkg", "*.exe", "*.msi", "*.deb", "*.rpm")
     }
+    into(layout.buildDirectory.dir("distributions"))
+}
+
+tasks.named("jpackage") {
+    finalizedBy(copyJpackageInstallers)
 }
 
 dependencies {
