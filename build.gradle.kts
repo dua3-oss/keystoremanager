@@ -84,6 +84,8 @@ jlink {
     imageName.set("KeystoreManager")
 
     // Keep image reasonably small
+    includeLocales.set(listOf("en", "de", "es", "fr", "id", "it", "ja", "ko", "zh", "zh-Hant"))
+
     addOptions(
         "--strip-debug",
         "--no-header-files",

@@ -45,6 +45,7 @@ public final class Main {
      * @param args command-line arguments passed to the application
      */
     public static void main(String[] args) {
+        Locale.getDefault();
         I18N i18n = I18N.getInstance();
         FxLauncher.launchApplication(
                 "com.dua3.app.keystoremanager.KeyStoreManager",
