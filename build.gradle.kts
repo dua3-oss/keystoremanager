@@ -225,7 +225,7 @@ apply(plugin = "com.dua3.cabe")
 apply(plugin = "de.thetaphi.forbiddenapis")
 
 jdk {
-    version = "25.0.2"
+    version = 25
     javaFxBundled = true
     nativeImageCapable = true
 }

@@ -18,11 +18,9 @@
  */
 package com.dua3.app.keystoremanager;
 
+import com.dua3.utility.i18n.I18N;
 import org.slb4j.SLB4J;
 import com.dua3.utility.fx.FxLauncher;
-import com.dua3.utility.i18n.I18N;
-
-import java.util.Locale;
 
 /**
  * The Main class serves as the entry point of the application.
@@ -33,7 +31,6 @@ public final class Main {
 
     static {
         SLB4J.init();
-        I18N.init("dua3.keystoremanager", Locale.getDefault());
     }
 
     private Main() {}
@@ -45,16 +42,15 @@ public final class Main {
      * @param args command-line arguments passed to the application
      */
     public static void main(String[] args) {
-        Locale.getDefault();
-        I18N i18n = I18N.getInstance();
-        FxLauncher.launchApplication(
+        FxLauncher.launchApplicationI18N(
                 "com.dua3.app.keystoremanager.KeyStoreManager",
                 args,
-                i18n.get("dua3.keystoremanager.main.title"),
-                "0.0.1",
-                i18n.get("dua3.keystoremanager.main.copyright"),
-                "axh@dua3.com",
-                i18n.get("dua3.keystoremanager.main.description")
+                locale -> I18N.init("dua3.keystoremanager", locale),
+                "dua3.keystoremanager.main.title",
+                I18N.literal("0.0.1"),
+                "dua3.keystoremanager.main.copyright",
+                I18N.literal("axh@dua3.com"),
+                "dua3.keystoremanager.main.description"
         );
     }
 }
