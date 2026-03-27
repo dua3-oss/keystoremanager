@@ -621,7 +621,4 @@ tasks.register("createDistributions") {
 
     dependsOn("jpackage")
     dependsOn("createNativeDmg")
-    dependsOn("distZip")
-    dependsOn("distTar")
-    dependsOn("jlinkZip")
 }
