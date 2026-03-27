@@ -110,6 +110,9 @@ jlink {
         val ver = (project.version as String).replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
         appVersion = if (ver.isNotBlank()) ver else "0.0.0"
 
+        // For the DMG task to use the same version
+        project.extra["jpackageVersion"] = appVersion
+        
         // Always produce an app image; installers are optional depending on OS/flags
         imageName = "KeystoreManager"
 
@@ -121,6 +124,9 @@ jlink {
         // Users can pass platform-specific options on the command line
         if (os.isLinux) {
             installerOptions.addAll("--linux-app-release", "")
+        }
+        if (os.isMacOsX) {
+            installerType = "dmg"
         }
         val iconFile = when {
             os.isMacOsX -> project.file("data/logo.icns")
@@ -184,6 +190,17 @@ tasks.named("jpackage") {
     finalizedBy(copyJpackageInstallers)
 }
 
+tasks.named("copyJpackageInstallers") {
+    doLast {
+        // Remove .pkg file on macOS if it exists
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+            project.fileTree(layout.buildDirectory.dir("distributions")) {
+                include("*.pkg")
+            }.forEach { it.delete() }
+        }
+    }
+}
+
 dependencies {
     implementation(rootProject.libs.dua3.utility)
     implementation(rootProject.libs.dua3.utility.fx)
@@ -225,7 +242,7 @@ apply(plugin = "com.dua3.cabe")
 apply(plugin = "de.thetaphi.forbiddenapis")
 
 jdk {
-    version = 25
+    version = "25.0.2"
     javaFxBundled = true
     nativeImageCapable = true
 }
@@ -396,7 +413,7 @@ tasks.register("createMacApp") {
         val version = appVersionString
         val buildDir = layout.buildDirectory.get().asFile
 
-        val appBundle = file("$buildDir/distributions/$appName.app")
+        val appBundle = file("$buildDir/native/bundle/$appName.app")
         val contentsDir = file("$appBundle/Contents")
         val macOSDir = file("$contentsDir/MacOS")
         val resourcesDir = file("$contentsDir/Resources")
@@ -459,15 +476,25 @@ tasks.register("createMacApp") {
 
 abstract class CreateDmgTask @Inject constructor(private val execOperations: ExecOperations) : DefaultTask() {
     @get:Input
+    @get:org.gradle.api.tasks.Optional
     abstract val appVersion: Property<String>
+
+    @get:Internal
+    val jver = project.provider {
+        val v = (project.extra["jpackageVersion"] as String?) ?: project.version.toString()
+        v.replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
+    }
 
     @TaskAction
     fun createDmg() {
+        if (!appVersion.isPresent) {
+            appVersion.set(jver)
+        }
         val appName = "KeystoreManager"
         val buildDir = project.layout.buildDirectory.get().asFile
         val distributionsDir = project.file("$buildDir/distributions")
-        val appBundle = project.file("$distributionsDir/$appName.app") // native .app from createMacApp
-        val dmgName = "$appName-Native-${appVersion.get()}"
+        val appBundle = project.file("$buildDir/native/bundle/$appName.app") // native .app from createMacApp
+        val dmgName = "$appName-${appVersion.get()}-native"
         val finalDmg = project.file("$distributionsDir/$dmgName.dmg")
 
         if (!appBundle.exists()) {
@@ -545,18 +572,16 @@ tasks.register<CreateDmgTask>("createNativeDmg") {
     group = "distribution"
     description = "Creates a macOS DMG for the GraalVM native executable by swapping the bundle in the jpackaged DMG."
     dependsOn("createMacApp")
-    dependsOn("jpackage")
+    mustRunAfter("jpackage")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
-
-    appVersion.set(project.version.toString())
 }
 
 tasks.register("createDistributions") {
     group = "distribution"
     description = "Creates all configured distributions (native installer, jpackaged apps, archives)."
 
-    dependsOn("createNativeDmg")
     dependsOn("jpackage")
+    dependsOn("createNativeDmg")
     dependsOn("distZip")
     dependsOn("distTar")
     dependsOn("jlinkZip")
