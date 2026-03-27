@@ -22,6 +22,7 @@ import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.internal.extensions.stdlib.toDefaultLowerCase
 import javax.inject.Inject
 import org.gradle.process.ExecOperations
+import org.gradle.api.file.FileSystemOperations
 
 plugins {
     id("java")
@@ -186,19 +187,36 @@ val copyJpackageInstallers by tasks.registering(Sync::class) {
     into(layout.buildDirectory.dir("distributions"))
 }
 
+abstract class CleanupMacInstallersTask @Inject constructor(
+    private val fs: FileSystemOperations
+) : DefaultTask() {
+    @get:InputDirectory
+    abstract val distributionsDir: DirectoryProperty
+
+    @TaskAction
+    fun cleanup() {
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+            fs.delete {
+                delete(distributionsDir.asFileTree.matching {
+                    include("*.pkg")
+                })
+            }
+        }
+    }
+}
+
+val cleanupMacInstallers by tasks.registering(CleanupMacInstallersTask::class) {
+    distributionsDir.set(layout.buildDirectory.dir("distributions"))
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+    mustRunAfter("distZip", "distTar")
+}
+
 tasks.named("jpackage") {
     finalizedBy(copyJpackageInstallers)
 }
 
 tasks.named("copyJpackageInstallers") {
-    doLast {
-        // Remove .pkg file on macOS if it exists
-        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
-            project.fileTree(layout.buildDirectory.dir("distributions")) {
-                include("*.pkg")
-            }.forEach { it.delete() }
-        }
-    }
+    finalizedBy(cleanupMacInstallers)
 }
 
 dependencies {
@@ -396,41 +414,42 @@ tasks.withType<DependencyUpdatesTask> {
 }
 
 // === on macOS, wrap the native image as an application bundle
-tasks.register("createMacApp") {
-    group = "distribution"
-    description = "Creates a macOS .app bundle for the native executable."
+abstract class CreateMacAppTask : DefaultTask() {
+    @get:Input
+    abstract val appVersion: Property<String>
 
-    // Only run this task if the operating system is macOS
-    onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+    @get:InputFile
+    abstract val nativeBinary: RegularFileProperty
 
-    // Ensure the native binary exists before wrapping it
-    dependsOn("nativeCompile")
+    @get:InputFile
+    @get:org.gradle.api.tasks.Optional
+    abstract val iconFile: RegularFileProperty
 
-    val appVersionString = project.version.toString()
+    @get:OutputDirectory
+    abstract val appBundle: DirectoryProperty
 
-    doLast {
+    @TaskAction
+    fun createMacApp() {
         val appName = "KeystoreManager"
-        val version = appVersionString
-        val buildDir = layout.buildDirectory.get().asFile
-
-        val appBundle = file("$buildDir/native/bundle/$appName.app")
-        val contentsDir = file("$appBundle/Contents")
-        val macOSDir = file("$contentsDir/MacOS")
-        val resourcesDir = file("$contentsDir/Resources")
+        val version = appVersion.get()
+        val appBundleDir = appBundle.get().asFile
+        val contentsDir = File(appBundleDir, "Contents")
+        val macOSDir = File(contentsDir, "MacOS")
+        val resourcesDir = File(contentsDir, "Resources")
 
         // 1. Clean and Create Directory Structure
-        appBundle.deleteRecursively()
+        appBundleDir.deleteRecursively()
         macOSDir.mkdirs()
         resourcesDir.mkdirs()
 
         // 2. Copy the Native Binary
-        val nativeBinary = file("$buildDir/native/nativeCompile/keystoremanager")
-        if (!nativeBinary.exists()) {
-            throw GradleException("Native binary not found at ${nativeBinary.path}. Run nativeCompile first.")
+        val binary = nativeBinary.get().asFile
+        if (!binary.exists()) {
+            throw GradleException("Native binary not found at ${binary.path}. Run nativeCompile first.")
         }
 
-        val targetBinary = file("$macOSDir/$appName")
-        nativeBinary.copyTo(targetBinary, overwrite = true)
+        val targetBinary = File(macOSDir, appName)
+        binary.copyTo(targetBinary, overwrite = true)
         targetBinary.setExecutable(true)
 
         // 3. Create the Info.plist
@@ -461,41 +480,56 @@ tasks.register("createMacApp") {
             </plist>
         """.trimIndent()
 
-        file("$contentsDir/Info.plist").writeText(plistContent)
+        File(contentsDir, "Info.plist").writeText(plistContent)
 
         // 4. Copy Icon
-        val iconFile = file("data/logo.icns")
-        if (iconFile.exists()) {
-            val destIcon = file("$resourcesDir/logo.icns")
-            iconFile.copyTo(destIcon, overwrite = true)
+        if (iconFile.isPresent && iconFile.get().asFile.exists()) {
+            val icon = iconFile.get().asFile
+            val destIcon = File(resourcesDir, "logo.icns")
+            icon.copyTo(destIcon, overwrite = true)
         }
 
-        println("✅ macOS App Bundle created at: ${appBundle.absolutePath}")
+        println("✅ macOS App Bundle created at: ${appBundleDir.absolutePath}")
     }
 }
 
-abstract class CreateDmgTask @Inject constructor(private val execOperations: ExecOperations) : DefaultTask() {
+tasks.register<CreateMacAppTask>("createMacApp") {
+    group = "distribution"
+    description = "Creates a macOS .app bundle for the native executable."
+
+    // Only run this task if the operating system is macOS
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+
+    // Ensure the native binary exists before wrapping it
+    dependsOn("nativeCompile")
+
+    appVersion.set(project.provider { project.version.toString() })
+    nativeBinary.set(layout.buildDirectory.file("native/nativeCompile/keystoremanager"))
+    iconFile.set(project.layout.projectDirectory.file("data/logo.icns"))
+    appBundle.set(layout.buildDirectory.dir("native/bundle/KeystoreManager.app"))
+}
+
+abstract class CreateDmgTask @Inject constructor(
+    private val execOperations: ExecOperations,
+    private val fs: FileSystemOperations,
+    private val layout: ProjectLayout
+) : DefaultTask() {
     @get:Input
     @get:org.gradle.api.tasks.Optional
     abstract val appVersion: Property<String>
 
     @get:Internal
-    val jver = project.provider {
-        val v = (project.extra["jpackageVersion"] as String?) ?: project.version.toString()
-        v.replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
-    }
+    abstract val jpackageVersion: Property<String>
 
     @TaskAction
     fun createDmg() {
-        if (!appVersion.isPresent) {
-            appVersion.set(jver)
-        }
+        val version = if (appVersion.isPresent) appVersion.get() else jpackageVersion.get()
         val appName = "KeystoreManager"
-        val buildDir = project.layout.buildDirectory.get().asFile
-        val distributionsDir = project.file("$buildDir/distributions")
-        val appBundle = project.file("$buildDir/native/bundle/$appName.app") // native .app from createMacApp
-        val dmgName = "$appName-${appVersion.get()}-native"
-        val finalDmg = project.file("$distributionsDir/$dmgName.dmg")
+        val buildDir = layout.buildDirectory.get().asFile
+        val distributionsDir = File(buildDir, "distributions")
+        val appBundle = File(buildDir, "native/bundle/$appName.app") // native .app from createMacApp
+        val dmgName = "$appName-$version-native"
+        val finalDmg = File(distributionsDir, "$dmgName.dmg")
 
         if (!appBundle.exists()) {
             throw GradleException("App bundle not found at ${appBundle.absolutePath}. Run createMacApp first.")
@@ -503,7 +537,7 @@ abstract class CreateDmgTask @Inject constructor(private val execOperations: Exe
 
         // 1. Find the template DMG created by jpackage
         // jpackage puts its output in build/jpackage
-        val jpackageOutputDir = project.file("$buildDir/jpackage")
+        val jpackageOutputDir = File(buildDir, "jpackage")
         val templateDmg = jpackageOutputDir.listFiles { _, name ->
             name.startsWith(appName.lowercase()) && name.endsWith(".dmg")
         }?.firstOrNull() ?: throw GradleException("jpackaged DMG not found in ${jpackageOutputDir.absolutePath}. Run jpackage first.")
@@ -511,8 +545,8 @@ abstract class CreateDmgTask @Inject constructor(private val execOperations: Exe
         println("Using template DMG: ${templateDmg.absolutePath}")
 
         // 2. Create a writable temporary DMG from the template
-        val tempDmg = project.file("$buildDir/temp-native.dmg")
-        project.delete(tempDmg)
+        val tempDmg = File(buildDir, "temp-native.dmg")
+        fs.delete { delete(tempDmg) }
         
         println("Creating writable temporary DMG...")
         execOperations.exec {
@@ -521,7 +555,7 @@ abstract class CreateDmgTask @Inject constructor(private val execOperations: Exe
 
         // 3. Mount the temporary DMG
         println("Mounting DMG for bundle swap...")
-        val mountDir = project.file("$buildDir/mnt-native")
+        val mountDir = File(buildDir, "mnt-native")
         mountDir.mkdirs()
         execOperations.exec {
             commandLine("hdiutil", "attach", tempDmg.absolutePath, "-mountpoint", mountDir.absolutePath)
@@ -530,19 +564,19 @@ abstract class CreateDmgTask @Inject constructor(private val execOperations: Exe
         try {
             // 4. Replace the .app bundle
             // The template DMG should have the jlinked .app bundle at its root
-            val jlinkedApp = project.file("${mountDir.absolutePath}/$appName.app")
+            val jlinkedApp = File(mountDir, "$appName.app")
             if (jlinkedApp.exists()) {
                 println("Removing jlinked app bundle from DMG...")
-                project.delete(jlinkedApp)
+                fs.delete { delete(jlinkedApp) }
             } else {
                 println("Warning: $appName.app not found in DMG root. Trying to find it...")
                 mountDir.listFiles()?.forEach { println("Found in DMG: ${it.name}") }
             }
 
             println("Copying native app bundle into DMG...")
-            project.copy {
+            fs.copy {
                 from(appBundle)
-                into(project.file("${mountDir.absolutePath}/$appName.app"))
+                into(File(mountDir, "$appName.app"))
             }
             
             // Wait a bit for filesystem to sync
@@ -553,17 +587,17 @@ abstract class CreateDmgTask @Inject constructor(private val execOperations: Exe
             execOperations.exec {
                 commandLine("hdiutil", "detach", mountDir.absolutePath)
             }
-            project.delete(mountDir)
+            fs.delete { delete(mountDir) }
         }
 
         // 6. Convert to final read-only DMG
-        project.delete(finalDmg)
+        fs.delete { delete(finalDmg) }
         println("Converting to final DMG...")
         execOperations.exec {
             commandLine("hdiutil", "convert", tempDmg.absolutePath, "-format", "UDZO", "-o", finalDmg.absolutePath)
         }
 
-        project.delete(tempDmg)
+        fs.delete { delete(tempDmg) }
         println("✅ Native DMG created at: ${finalDmg.absolutePath}")
     }
 }
@@ -574,6 +608,11 @@ tasks.register<CreateDmgTask>("createNativeDmg") {
     dependsOn("createMacApp")
     mustRunAfter("jpackage")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+
+    jpackageVersion.set(provider {
+        val v = (project.extra["jpackageVersion"] as String?) ?: project.version.toString()
+        v.replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
+    })
 }
 
 tasks.register("createDistributions") {
