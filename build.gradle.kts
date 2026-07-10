@@ -185,7 +185,7 @@ jlink {
 }
 
 // Copy jpackaged installers to the distribution directory
-val copyJpackageInstallers by tasks.registering(Sync::class) {
+val copyJpackageInstallers = tasks.register<Sync>("copyJpackageInstallers") {
     from(layout.buildDirectory.dir("jpackage")) {
         include("*.dmg", "*.pkg", "*.exe", "*.msi", "*.deb", "*.rpm")
     }
@@ -210,7 +210,7 @@ abstract class CleanupMacInstallersTask @Inject constructor(
     }
 }
 
-val cleanupMacInstallers by tasks.registering(CleanupMacInstallersTask::class) {
+val cleanupMacInstallers = tasks.register<CleanupMacInstallersTask>("cleanupMacInstallers") {
     distributionsDir.set(layout.buildDirectory.dir("distributions"))
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
     mustRunAfter("distZip", "distTar")
@@ -251,15 +251,6 @@ fun isDevelopmentVersion(versionString: String): Boolean {
 
 val isReleaseVersion = !isDevelopmentVersion(project.version.toString())
 val isSnapshot = project.version.toString().toDefaultLowerCase().contains("snapshot")
-
-apply(plugin = "java")
-apply(plugin = "signing")
-apply(plugin = "idea")
-apply(plugin = "com.github.ben-manes.versions")
-apply(plugin = "com.adarshr.test-logger")
-apply(plugin = "com.github.spotbugs")
-apply(plugin = "com.dua3.cabe")
-apply(plugin = "de.thetaphi.forbiddenapis")
 
 jdk {
     version = "25.0.2"
@@ -314,7 +305,7 @@ idea {
 
 testing {
     suites {
-        val test by getting(JvmTestSuite::class) {
+        val test = getByName<JvmTestSuite>("test") {
             useJUnitJupiter()
 
             targets {
