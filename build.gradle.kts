@@ -253,7 +253,7 @@ val isReleaseVersion = !isDevelopmentVersion(project.version.toString())
 val isSnapshot = project.version.toString().toDefaultLowerCase().contains("snapshot")
 
 jdk {
-    version = "25.0.2"
+    version = "25.0.3"
     javaFxBundled = true
     nativeImageCapable = true
 }
