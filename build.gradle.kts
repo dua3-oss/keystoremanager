@@ -39,6 +39,12 @@ plugins {
     alias(libs.plugins.forbiddenapis)
 }
 
+val resolvedProjectVersion = rootProject.libs.versions.projectVersion.get()
+project.version = resolvedProjectVersion
+val packagingVersion = resolvedProjectVersion
+    .replace(Regex("[-.]\\w*(SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
+    .ifBlank { "0.0.0" }
+
 /////////////////////////////////////////////////////////////////////////////
 object Meta {
     const val GROUP = "com.dua3.app.keystoremanager"
@@ -107,9 +113,8 @@ jlink {
         // Use a clean, OS-agnostic default; users may override with -PinstallerType=<dmg|pkg|msi|exe|deb|rpm>
         vendor = "dua3"
 
-        // jpackage requires a numeric version; strip qualifiers
-        val ver = (project.version as String).replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
-        appVersion = if (ver.isNotBlank()) ver else "0.0.0"
+        // jpackage requires a numeric version.
+        appVersion = packagingVersion
 
         // For the DMG task to use the same version
         project.extra["jpackageVersion"] = appVersion
@@ -232,9 +237,6 @@ dependencies {
     testRuntimeOnly(rootProject.libs.junit.platform.launcher)
     testRuntimeOnly(rootProject.libs.junit.jupiter.engine)
 }
-
-// --- configure all project ----
-project.version = rootProject.libs.versions.projectVersion.get()
 
 fun isDevelopmentVersion(versionString: String): Boolean {
     val v = versionString.toDefaultLowerCase()
@@ -503,7 +505,7 @@ tasks.register<CreateMacAppTask>("createMacApp") {
     // Ensure the native binary exists before wrapping it
     dependsOn("nativeCompile")
 
-    appVersion.set(project.provider { project.version.toString() })
+    appVersion.set(project.provider { packagingVersion })
     nativeBinary.set(layout.buildDirectory.file("native/nativeCompile/keystoremanager"))
     iconFile.set(project.layout.projectDirectory.file("data/logo.icns"))
     appBundle.set(layout.buildDirectory.dir("native/bundle/KeystoreManager.app"))
@@ -527,6 +529,7 @@ abstract class CreateDmgTask @Inject constructor(
         val appName = "KeystoreManager"
         val buildDir = layout.buildDirectory.get().asFile
         val distributionsDir = File(buildDir, "distributions")
+        distributionsDir.mkdirs()
         val appBundle = File(buildDir, "native/bundle/$appName.app") // native .app from createMacApp
         val dmgName = "$appName-$version-native"
         val finalDmg = File(distributionsDir, "$dmgName.dmg")
@@ -607,12 +610,11 @@ tasks.register<CreateDmgTask>("createNativeDmg") {
     description = "Creates a macOS DMG for the GraalVM native executable by swapping the bundle in the jpackaged DMG."
     dependsOn("createMacApp")
     mustRunAfter("jpackage")
+    mustRunAfter("copyJpackageInstallers")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
 
-    jpackageVersion.set(provider {
-        val v = (project.extra["jpackageVersion"] as String?) ?: project.version.toString()
-        v.replace(Regex("[-.](SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
-    })
+    appVersion.set(provider { packagingVersion })
+    jpackageVersion.set(provider { packagingVersion })
 }
 
 tasks.register("createDistributions") {
