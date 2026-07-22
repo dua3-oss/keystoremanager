@@ -60,6 +60,10 @@ object Meta {
 }
 /////////////////////////////////////////////////////////////////////////////
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 application {
     mainClass = "com.dua3.app.keystoremanager.Main"
     applicationDefaultJvmArgs = listOf("--enable-native-access=javafx.graphics,ALL-UNNAMED")
@@ -186,6 +190,8 @@ jlink {
 
 // Copy jpackaged installers to the distribution directory
 val copyJpackageInstallers = tasks.register<Sync>("copyJpackageInstallers") {
+    group = "distribution"
+    description = "Copies jpackage installers to the distribution directory."
     from(layout.buildDirectory.dir("jpackage")) {
         include("*.dmg", "*.pkg", "*.exe", "*.msi", "*.deb", "*.rpm")
     }
@@ -211,6 +217,8 @@ abstract class CleanupMacInstallersTask @Inject constructor(
 }
 
 val cleanupMacInstallers = tasks.register<CleanupMacInstallersTask>("cleanupMacInstallers") {
+    group = "distribution"
+    description = "Removes macOS PKG installers from the distribution directory."
     distributionsDir.set(layout.buildDirectory.dir("distributions"))
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
     mustRunAfter("distZip", "distTar")

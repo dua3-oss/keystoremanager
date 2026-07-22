@@ -1,0 +1,24 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+# To regenerate this file, run: ./gradlew :dependencies --write-locks
+com.dua3.utility:utility-bom:23.0.6=compileClasspath,runtimeClasspath
+com.dua3.utility:utility-fx-controls:23.0.6=compileClasspath,runtimeClasspath
+com.dua3.utility:utility-fx-icons:23.0.6=runtimeClasspath
+com.dua3.utility:utility-fx:23.0.6=compileClasspath,runtimeClasspath
+com.dua3.utility:utility:23.0.6=compileClasspath,runtimeClasspath
+com.github.joniles:rtfparserkit:1.16.0=runtimeClasspath
+io.github.mkpaz:atlantafx-base:2.1.0=compileClasspath,runtimeClasspath
+org.apache.logging.log4j:log4j-api:2.26.1=compileClasspath,runtimeClasspath
+org.apache.logging.log4j:log4j-bom:2.26.1=compileClasspath,runtimeClasspath
+org.bouncycastle:bcpkix-jdk18on:1.85=compileClasspath,runtimeClasspath
+org.bouncycastle:bcprov-jdk18on:1.85=compileClasspath,runtimeClasspath
+org.bouncycastle:bcutil-jdk18on:1.85=compileClasspath,runtimeClasspath
+org.jspecify:jspecify:1.0.0=compileClasspath,runtimeClasspath
+org.kordamp.ikonli:ikonli-core:12.4.0=runtimeClasspath
+org.kordamp.ikonli:ikonli-feather-pack:12.4.0=runtimeClasspath
+org.openjfx:javafx-base:23=compileClasspath,runtimeClasspath
+org.openjfx:javafx-controls:23=compileClasspath,runtimeClasspath
+org.openjfx:javafx-graphics:23=compileClasspath,runtimeClasspath
+org.slb4j:slb4j:0.12.2=compileClasspath,runtimeClasspath
+empty=annotationProcessor
