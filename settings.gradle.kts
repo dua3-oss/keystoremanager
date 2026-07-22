@@ -27,7 +27,6 @@ dependencyResolutionManagement {
     repositories {
 
         // Maven Central Repository
-        mavenLocal()
         mavenCentral()
 
         if (isReleaseCandidate) {
