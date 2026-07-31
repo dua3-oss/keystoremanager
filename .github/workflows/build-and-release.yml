@@ -27,6 +27,7 @@ jobs:
 #            javaArch: aarch64
           - os: macos-26
             artifactSuffix: macos-arm64
+            javaArch: aarch64
             releasePlatform: macos
             buildInstaller: true
             installerType: dmg
