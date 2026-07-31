@@ -58,7 +58,7 @@ jobs:
 
       # ---------- Platform-specific signing preparation ----------
       - name: Prepare macOS code signing (keychain)
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-26'
         shell: bash
         env:
           P12_B64: ${{ secrets.MAC_DEV_SIGN_CERT_P12 }}
@@ -142,7 +142,7 @@ jobs:
             )
           fi
           ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }} "${signing_args[@]}"
-          if [ "${{ matrix.os }}" == "macos-14" ]; then
+          if [ "${{ matrix.os }}" == "macos-26" ]; then
             # Create and sign the native app before it is copied into its DMG.
             ./gradlew --no-daemon --stacktrace createMacApp
             native_app="build/native/bundle/KeystoreManager.app"
@@ -180,7 +180,7 @@ jobs:
           fi
 
       - name: Verify macOS jpackage signature
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-26'
         shell: bash
         run: |
           set -euo pipefail
@@ -195,7 +195,7 @@ jobs:
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
           APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-26'
         shell: bash
         run: |
           set -euo pipefail
