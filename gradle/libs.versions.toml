@@ -9,7 +9,7 @@ test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
 versions = { id = "com.github.ben-manes.versions", version = "0.54.0" }
 
 [versions]
-projectVersion = "1.0.1"
+projectVersion = "1.0.3"
 
 jdk = "25"
 

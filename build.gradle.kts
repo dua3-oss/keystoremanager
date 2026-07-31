@@ -155,10 +155,14 @@ jlink {
         if (macSign) {
             val identity = (project.findProperty("mac.identity") as String?)?.trim().orEmpty()
             if (identity.isNotEmpty()) {
-                installerOptions.addAll("--mac-sign")
-                installerOptions.addAll("--mac-signing-key-user-name", identity)
+                // Sign the app image as well as the enclosing DMG. Supplying
+                // this only as an installer option can leave the .app with an
+                // ad-hoc signature, which cannot be notarized.
+                imageOptions.addAll("--mac-sign", "--mac-app-image-sign-identity", identity)
+                installerOptions.addAll("--mac-sign", "--mac-app-image-sign-identity", identity)
                 val keychain = (project.findProperty("mac.keychain") as String?)?.trim()
                 if (!keychain.isNullOrEmpty()) {
+                    imageOptions.addAll("--mac-signing-keychain", keychain)
                     installerOptions.addAll("--mac-signing-keychain", keychain)
                 }
             }
