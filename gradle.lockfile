@@ -3,11 +3,11 @@
 # This file is expected to be part of source control.
 # To regenerate this file, run: ./gradlew :dependencies --write-locks
 biz.aQute.bnd:biz.aQute.bnd.annotation:7.1.0=compileClasspath
-com.dua3.utility:utility-bom:23.0.6=compileClasspath,runtimeClasspath
-com.dua3.utility:utility-fx-controls:23.0.6=compileClasspath,runtimeClasspath
-com.dua3.utility:utility-fx-icons:23.0.6=runtimeClasspath
-com.dua3.utility:utility-fx:23.0.6=compileClasspath,runtimeClasspath
-com.dua3.utility:utility:23.0.6=compileClasspath,runtimeClasspath
+com.dua3.utility:utility-bom:23.1.2=compileClasspath,runtimeClasspath
+com.dua3.utility:utility-fx-controls:23.1.2=compileClasspath,runtimeClasspath
+com.dua3.utility:utility-fx-icons:23.1.2=runtimeClasspath
+com.dua3.utility:utility-fx:23.1.2=compileClasspath,runtimeClasspath
+com.dua3.utility:utility:23.1.2=compileClasspath,runtimeClasspath
 com.github.joniles:rtfparserkit:1.16.0=runtimeClasspath
 com.google.errorprone:error_prone_annotations:2.38.0=compileClasspath
 io.github.mkpaz:atlantafx-base:2.1.0=compileClasspath,runtimeClasspath
