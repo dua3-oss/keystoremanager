@@ -25,9 +25,11 @@ jobs:
 #          - os: windows-2025
 #            artifactSuffix: windows-arm
 #            javaArch: aarch64
-          - os: macos-14
+          - os: macos-26
+            artifactSuffix: macos-arm64
+            releasePlatform: macos
+            buildInstaller: true
             installerType: dmg
-            artifactSuffix: macos-arm
           - os: ubuntu-latest
             installerType: rpm
             artifactSuffix: linux-rpm
