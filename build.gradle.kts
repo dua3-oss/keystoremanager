@@ -32,7 +32,6 @@ plugins {
     alias(libs.plugins.jdk)
     alias(libs.plugins.graalvm)
     alias(libs.plugins.jlink)
-    alias(libs.plugins.versions)
     alias(libs.plugins.test.logger)
     alias(libs.plugins.spotbugs)
     alias(libs.plugins.cabe)
@@ -410,11 +409,6 @@ tasks.withType<DependencyUpdatesTask> {
     // refuse non-stable versions
     rejectVersionIf {
         !isStable(candidate.version)
-    }
-
-    // dependencyUpdates fails in parallel mode with Gradle 9+ (https://github.com/ben-manes/gradle-versions-plugin/issues/968)
-    doFirst {
-        gradle.startParameter.isParallelProjectExecutionEnabled = false
     }
 }
 

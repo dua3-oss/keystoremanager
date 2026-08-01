@@ -6,7 +6,6 @@ jdk = { id = "com.dua3.gradle.jdkprovider", version = "0.11.0" }
 jlink = { id = "org.beryx.jlink", version = "4.1.1" }
 spotbugs = { id = "com.github.spotbugs", version = "6.5.9" }
 test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
-versions = { id = "com.github.ben-manes.versions", version = "0.54.0" }
 
 [versions]
 projectVersion = "1.0.3"
@@ -17,7 +16,7 @@ atlantafx = "2.1.0"
 bouncycastle = "1.85"
 dua3-utility = "23.1.2"
 ikonli = "12.4.0"
-jspecify = "1.0.0"
+jspecify = "1.0.1"
 junit-bom = "6.1.2"
 log4j-bom = "2.26.1"
 slb4j = "0.12.2"
