@@ -208,8 +208,11 @@ jobs:
           chmod 600 "$notary_api_key"
           openssl pkey -in "$notary_api_key" -noout
           shopt -s nullglob
-          dmgs=(build/jpackage/*.dmg build/distributions/*.dmg build/distributions/*.DMG)
-          [ "${#dmgs[@]}" -eq 2 ] || { echo "::error::Expected the jpackage and native DMGs, found ${#dmgs[@]}."; exit 1; }
+          jpackage_dmgs=(build/jpackage/*.dmg build/jpackage/*.DMG)
+          native_dmgs=(build/distributions/*-native.dmg build/distributions/*-native.DMG)
+          [ "${#jpackage_dmgs[@]}" -eq 1 ] || { echo "::error::Expected exactly one jpackage DMG, found ${#jpackage_dmgs[@]}."; exit 1; }
+          [ "${#native_dmgs[@]}" -eq 1 ] || { echo "::error::Expected exactly one native DMG, found ${#native_dmgs[@]}."; exit 1; }
+          dmgs=("${jpackage_dmgs[0]}" "${native_dmgs[0]}")
           for dmg in "${dmgs[@]}"; do
             xcrun notarytool submit "$dmg" --key "$notary_api_key" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
             xcrun stapler staple "$dmg"
