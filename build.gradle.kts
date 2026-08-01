@@ -585,13 +585,35 @@ abstract class CreateDmgTask @Inject constructor(
                 into(File(mountDir, "$appName.app"))
             }
             
-            // Wait a bit for filesystem to sync
-            Thread.sleep(1000)
         } finally {
-            // 5. Unmount the DMG
+            // 5. Unmount the DMG. On hosted macOS runners, hdiutil can retain
+            // the HFS image briefly after the copy has completed. Retry a
+            // normal detach before using the safe forced-detach fallback.
             println("Unmounting DMG...")
-            execOperations.exec {
-                commandLine("hdiutil", "detach", mountDir.absolutePath)
+            var detached = false
+            for (attempt in 1..3) {
+                val result = execOperations.exec {
+                    commandLine("hdiutil", "detach", mountDir.absolutePath)
+                    isIgnoreExitValue = true
+                }
+                detached = result.exitValue == 0
+                if (detached) {
+                    break
+                }
+                if (attempt < 3) {
+                    println("DMG is still busy; retrying detach (attempt ${attempt + 1} of 3)...")
+                    Thread.sleep(2000)
+                }
+            }
+            if (!detached) {
+                println("Normal detach remained busy; forcing detach...")
+                val result = execOperations.exec {
+                    commandLine("hdiutil", "detach", mountDir.absolutePath, "-force")
+                    isIgnoreExitValue = true
+                }
+                if (result.exitValue != 0) {
+                    throw GradleException("Unable to detach mounted DMG at ${mountDir.absolutePath}.")
+                }
             }
             fs.delete { delete(mountDir) }
         }
