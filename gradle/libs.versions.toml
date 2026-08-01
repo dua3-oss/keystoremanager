@@ -8,7 +8,7 @@ spotbugs = { id = "com.github.spotbugs", version = "6.5.9" }
 test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
 
 [versions]
-projectVersion = "1.0.5"
+projectVersion = "1.0.6"
 
 jdk = "25"
 
