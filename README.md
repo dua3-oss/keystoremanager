@@ -66,7 +66,11 @@ Microsoft Store MSIX
 `createMsix` builds an unsigned x64 MSIX from the Windows `jpackage` app image.
 This is intentional: the Microsoft Store signs packages during ingestion, so no
 Windows signing certificate is needed for a Store submission. The package is
-written to `build/distributions/KeystoreManager-<version>-x64.msix`.
+written to `build/distributions/KeystoreManager-<version>-x64.msix`. Its
+manifest automatically declares every `keystoremanager*.properties` bundle in
+`src/main/resources/dua3` using BCP-47 language tags (including `zh-Hant` for
+the Java bundle suffix `zh_Hant`), so Partner Center can identify the supported
+languages during analysis.
 
 First reserve the application name in Partner Center, then copy the **Package/
 Identity/Name** and **Package/Identity/Publisher** values exactly as shown

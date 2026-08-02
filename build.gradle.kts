@@ -24,6 +24,7 @@ import javax.inject.Inject
 import org.gradle.process.ExecOperations
 import org.gradle.api.file.FileSystemOperations
 import java.util.Base64
+import java.util.Locale
 import java.io.ByteArrayOutputStream
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -479,6 +480,18 @@ abstract class CreateMsixTask @Inject constructor(
     @get:InputFile
     abstract val icon: RegularFileProperty
 
+    /** Directory containing the application's ResourceBundle properties files. */
+    @get:InputDirectory
+    abstract val resourceBundleDirectory: DirectoryProperty
+
+    /** The ResourceBundle base name without its optional locale suffix. */
+    @get:Input
+    abstract val resourceBundleBaseName: Property<String>
+
+    /** Language represented by the ResourceBundle with no locale suffix. */
+    @get:Input
+    abstract val defaultResourceLanguage: Property<String>
+
     @get:Input
     abstract val identityName: Property<String>
 
@@ -539,6 +552,46 @@ abstract class CreateMsixTask @Inject constructor(
             graphics.dispose()
         }
         ImageIO.write(wideLogo, "png", target)
+    }
+
+    /**
+     * Maps Java ResourceBundle suffixes (for example, zh_Hant) to the BCP-47
+     * language tags required by the MSIX manifest (zh-Hant).
+     */
+    private fun bundleLanguages(): List<String> {
+        val baseName = resourceBundleBaseName.get()
+        val filePattern = Regex("^${Regex.escape(baseName)}(?:_(.+))?\\.properties$")
+        val defaultLanguage = defaultResourceLanguage.get().trim()
+        check(defaultLanguage.matches(Regex("^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"))) {
+            "defaultResourceLanguage must be a BCP-47 language tag: $defaultLanguage"
+        }
+
+        return resourceBundleDirectory.get().asFile.listFiles().orEmpty()
+            .filter { it.isFile }
+            .mapNotNull { file ->
+                filePattern.matchEntire(file.name)?.groupValues?.get(1)?.let { suffix ->
+                    if (suffix.isEmpty()) {
+                        defaultLanguage
+                    } else {
+                        suffix.split('_').mapIndexed { index, part ->
+                            check(part.matches(Regex("^[A-Za-z0-9]{2,8}$"))) {
+                                "Invalid ResourceBundle locale suffix in ${file.name}"
+                            }
+                            when {
+                                index == 0 -> part.lowercase(Locale.ROOT)
+                                part.length == 4 && part.all(Char::isLetter) ->
+                                    part.lowercase(Locale.ROOT).replaceFirstChar { it.titlecase(Locale.ROOT) }
+                                part.length == 2 && part.all(Char::isLetter) || part.length == 3 && part.all(Char::isDigit) ->
+                                    part.uppercase(Locale.ROOT)
+                                else -> part
+                            }
+                        }.joinToString("-")
+                    }
+                }
+            }
+            .distinct()
+            .sorted()
+            .also { check(it.isNotEmpty()) { "No $baseName*.properties ResourceBundle files found." } }
     }
 
     private fun makeAppx(): File {
@@ -603,6 +656,10 @@ abstract class CreateMsixTask @Inject constructor(
         createLogo(icon.get().asFile, assets.resolve("StoreLogo.png"), 50)
         createWideLogo(icon.get().asFile, assets.resolve("Wide310x150Logo.png"))
 
+        val resourceLanguages = bundleLanguages().joinToString("\n") { language ->
+            "    <Resource Language=\"${xml(language)}\" />"
+        }
+
         staging.resolve("AppxManifest.xml").writeText(
             """<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -615,7 +672,9 @@ abstract class CreateMsixTask @Inject constructor(
     <PublisherDisplayName>${xml(publisherDisplayName.get())}</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
-  <Resources><Resource Language="en-us" /></Resources>
+  <Resources>
+$resourceLanguages
+  </Resources>
   <Dependencies>
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
@@ -666,6 +725,10 @@ val createMsix = tasks.register<CreateMsixTask>("createMsix") {
     dependsOn("jpackage")
     appImage.set(layout.buildDirectory.dir("jpackage/KeystoreManager"))
     icon.set(layout.projectDirectory.file("data/logo.png"))
+    resourceBundleDirectory.set(layout.projectDirectory.dir("src/main/resources/dua3"))
+    resourceBundleBaseName.set("keystoremanager")
+    // The unsuffixed ResourceBundle is the application's English fallback.
+    defaultResourceLanguage.set("en")
     identityName.set(msStoreIdentityName ?: "")
     publisher.set(msStorePublisher ?: "")
     publisherDisplayName.set(msStorePublisherDisplayName)
