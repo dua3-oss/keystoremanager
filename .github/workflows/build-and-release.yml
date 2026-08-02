@@ -136,13 +136,18 @@ jobs:
       - name: Create installer with jpackage
         if: matrix.artifactSuffix != 'windows-arm'
         shell: bash
+        env:
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }}
           if [ "${{ matrix.os }}" == "macos-26" ]; then
-            # This task creates, signs, and verifies the native app before it
-            # is copied into its DMG.
-            ./gradlew --no-daemon --stacktrace createNativeDmg
+            # This task creates, signs, verifies, notarizes, and staples both
+            # macOS DMGs in build/distributions.
+            ./gradlew --no-daemon --stacktrace createSignedArtifacts -PinstallerType=${{ matrix.installerType }}
+          else
+            ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }}
           fi
 
       # Windows ARM: Build app-image only (no native installer)
@@ -177,35 +182,6 @@ jobs:
           [ -d "$app" ] || { echo "::error::Missing jpackage app bundle: $app"; exit 1; }
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign --display --verbose=4 "$app" 2>&1 | grep -Fq "Authority=$MAC_DEV_SIGN_IDENTITY"
-
-      # ---------- Notarize and staple macOS DMGs ----------
-      - name: Notarize and staple macOS DMGs
-        env:
-          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
-          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
-        if: matrix.os == 'macos-26'
-        shell: bash
-        run: |
-          set -euo pipefail
-          for required_secret in APPLE_NOTARY_KEY_ID APPLE_NOTARY_ISSUER_ID APPLE_NOTARY_KEY_P8; do
-            [ -n "${!required_secret}" ] || { echo "::error::$required_secret is required for macOS notarization."; exit 1; }
-          done
-          notary_api_key="$RUNNER_TEMP/apple-notary-key.p8"
-          printf '%s' "$APPLE_NOTARY_KEY_P8" | base64 --decode > "$notary_api_key"
-          chmod 600 "$notary_api_key"
-          openssl pkey -in "$notary_api_key" -noout
-          shopt -s nullglob
-          jpackage_dmgs=(build/jpackage/*.dmg build/jpackage/*.DMG)
-          native_dmgs=(build/distributions/*-native.dmg build/distributions/*-native.DMG)
-          [ "${#jpackage_dmgs[@]}" -eq 1 ] || { echo "::error::Expected exactly one jpackage DMG, found ${#jpackage_dmgs[@]}."; exit 1; }
-          [ "${#native_dmgs[@]}" -eq 1 ] || { echo "::error::Expected exactly one native DMG, found ${#native_dmgs[@]}."; exit 1; }
-          dmgs=("${jpackage_dmgs[0]}" "${native_dmgs[0]}")
-          for dmg in "${dmgs[@]}"; do
-            xcrun notarytool submit "$dmg" --key "$notary_api_key" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
-            xcrun stapler staple "$dmg"
-            xcrun stapler validate "$dmg"
-          done
 
 #      # ---------- Sign Linux .deb after build (optional) ----------
 #      - name: Sign .deb with GPG

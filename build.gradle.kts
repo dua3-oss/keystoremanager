@@ -877,7 +877,7 @@ tasks.register("createDistributions") {
     dependsOn("createNativeDmg")
 }
 
-tasks.register("createSignedArtifacts") {
+val assembleSignedArtifacts = tasks.register("assembleSignedArtifacts") {
     group = "distribution"
     description = "Creates all signed release artifacts for the current platform."
 
@@ -885,4 +885,86 @@ tasks.register("createSignedArtifacts") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         dependsOn(verifyMacSigningConfiguration, "createNativeDmg")
     }
+}
+
+abstract class NotarizeMacDistributionsTask @Inject constructor(
+    private val execOperations: ExecOperations
+) : DefaultTask() {
+    @get:Internal
+    abstract val keyId: Property<String>
+
+    @get:Internal
+    abstract val issuerId: Property<String>
+
+    @get:Internal
+    abstract val privateKeyBase64: Property<String>
+
+    @get:InputDirectory
+    abstract val distributionsDir: DirectoryProperty
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun notarize() {
+        check(keyId.isPresent) { "APPLE_NOTARY_KEY_ID is required for macOS notarization." }
+        check(issuerId.isPresent) { "APPLE_NOTARY_ISSUER_ID is required for macOS notarization." }
+        check(privateKeyBase64.isPresent) { "APPLE_NOTARY_KEY_P8 is required for macOS notarization." }
+
+        val apiKey = temporaryDir.resolve("apple-notary-key.p8")
+        try {
+            apiKey.writeBytes(Base64.getDecoder().decode(privateKeyBase64.get()))
+        } catch (e: IllegalArgumentException) {
+            throw GradleException("APPLE_NOTARY_KEY_P8 must be Base64-encoded API key data.", e)
+        }
+        apiKey.setReadable(false, false)
+        apiKey.setReadable(true, true)
+
+        try {
+            val dmgs = distributionsDir.get().asFile.listFiles { file ->
+                file.isFile && file.extension.equals("dmg", ignoreCase = true)
+            }?.sortedBy { it.name } ?: emptyList()
+            check(dmgs.isNotEmpty()) { "No DMG files found in ${distributionsDir.get().asFile.absolutePath}." }
+
+            dmgs.forEach { dmg ->
+                execOperations.exec {
+                    commandLine(
+                        "xcrun", "notarytool", "submit", dmg.absolutePath,
+                        "--key", apiKey.absolutePath,
+                        "--key-id", keyId.get(),
+                        "--issuer", issuerId.get(),
+                        "--wait"
+                    )
+                }
+                execOperations.exec {
+                    commandLine("xcrun", "stapler", "staple", dmg.absolutePath)
+                }
+                execOperations.exec {
+                    commandLine("xcrun", "stapler", "validate", dmg.absolutePath)
+                }
+            }
+        } finally {
+            apiKey.delete()
+        }
+    }
+}
+
+val notarizeMacDistributions = tasks.register<NotarizeMacDistributionsTask>("notarizeMacDistributions") {
+    group = "distribution"
+    description = "Notarizes and staples all macOS DMGs in the distributions directory."
+    dependsOn(assembleSignedArtifacts)
+    keyId.set(releaseSecret("APPLE_NOTARY_KEY_ID"))
+    issuerId.set(releaseSecret("APPLE_NOTARY_ISSUER_ID"))
+    privateKeyBase64.set(releaseSecret("APPLE_NOTARY_KEY_P8"))
+    distributionsDir.set(layout.buildDirectory.dir("distributions"))
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isMacOsX && !isSnapshot
+    }
+}
+
+tasks.register("createSignedArtifacts") {
+    group = "distribution"
+    description = "Creates all signed release artifacts and notarizes macOS release DMGs."
+    dependsOn(assembleSignedArtifacts, notarizeMacDistributions)
 }
