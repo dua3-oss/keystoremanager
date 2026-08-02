@@ -70,7 +70,9 @@ written to `build/distributions/KeystoreManager-<version>-x64.msix`.
 
 First reserve the application name in Partner Center, then copy the **Package/
 Identity/Name** and **Package/Identity/Publisher** values exactly as shown
-there. Add these to the ignored `.secrets.env` file for a local build:
+there. The publisher must be the complete X.500 distinguished name, normally
+`CN=<publisher ID>`; it is not the publisher display name. Add these to the
+ignored `.secrets.env` file for a local build:
 
 ```
 MS_STORE_IDENTITY_NAME=<Partner Center package identity name>
@@ -87,8 +89,9 @@ provides `MakeAppx.exe`):
 
 The release workflow runs this task on every tag and publishes the resulting
 MSIX alongside the other release artifacts. Configure
-`MS_STORE_IDENTITY_NAME` and `MS_STORE_PUBLISHER` as GitHub Actions secrets;
-`MS_STORE_PUBLISHER_DISPLAY_NAME` is optional and defaults to `dua3`. The first
+`MS_STORE_IDENTITY_NAME` and `MS_STORE_PUBLISHER` as GitHub Actions secrets.
+Store the raw values only—do not include shell quotes or an
+`MS_STORE_PUBLISHER=` prefix. `MS_STORE_PUBLISHER_DISPLAY_NAME` is optional and defaults to `dua3`. The first
 Store submission must still be created in Partner Center, including the Store
 listing and age-rating questionnaire; that step establishes the Store identity
 used by the manifest. Upload the unsigned MSIX from the GitHub release there

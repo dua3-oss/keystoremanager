@@ -68,7 +68,10 @@ fun loadSecrets(file: File): Map<String, String> = buildMap {
 }
 
 val localSecrets = loadSecrets(rootProject.file(".secrets.env"))
-fun releaseSecret(name: String): String? = providers.environmentVariable(name).orNull ?: localSecrets[name]
+fun releaseSecret(name: String): String? = (providers.environmentVariable(name).orNull ?: localSecrets[name])
+    ?.trim()
+    ?.removeSurrounding("\"")
+    ?.removeSurrounding("'")
 
 val macSigningIdentity = providers.gradleProperty("mac.identity").orNull ?: releaseSecret("MAC_DEV_SIGN_IDENTITY")
 val macSigningCertificate = releaseSecret("MAC_DEV_SIGN_CERT_P12")
@@ -494,6 +497,15 @@ abstract class CreateMsixTask @Inject constructor(
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
+    /**
+     * The MSIX schema accepts a restricted X.500 distinguished name for the
+     * Publisher attribute. Keep this validation local so a malformed secret
+     * produces an actionable Gradle error without writing its value to logs.
+     */
+    private val publisherAttribute = """(?:CN|L|O|OU|E|C|S|STREET|T|G|I|SN|DC|SERIALNUMBER|Description|PostalCode|POBox|Phone|X21Address|dnQualifier|OID\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))+)"""
+    private val publisherValue = """(?:[^,+="<>#;]+|".*")"""
+    private val publisherPattern = Regex("""^$publisherAttribute=$publisherValue(?:, $publisherAttribute=$publisherValue)*$""")
+
     private fun xml(value: String) = value
         .replace("&", "&amp;")
         .replace("<", "&lt;")
@@ -571,6 +583,11 @@ abstract class CreateMsixTask @Inject constructor(
         }
         check(publisher.get().isNotBlank()) {
             "MS_STORE_PUBLISHER is required. Copy the Package/Identity/Publisher value from Partner Center."
+        }
+        check(publisherPattern.matches(publisher.get())) {
+            "MS_STORE_PUBLISHER must be the exact X.500 Package/Identity/Publisher value from Partner Center " +
+                "(normally CN=<publisher ID>), not the publisher display name. Do not include shell quotes or " +
+                "the MS_STORE_PUBLISHER= assignment."
         }
         val staging = temporaryDir.resolve("msix")
         val assets = staging.resolve("Assets")
