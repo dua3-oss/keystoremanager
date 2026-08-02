@@ -643,7 +643,10 @@ val msixArchitecture = when (System.getProperty("os.arch").toDefaultLowerCase())
 val createMsix = tasks.register<CreateMsixTask>("createMsix") {
     group = "distribution"
     description = "Creates an unsigned MSIX package for Microsoft Store ingestion."
-    dependsOn("jpackageImage")
+    // The app image lives under jpackage's declared output directory.  Keep
+    // this explicit dependency so Gradle can validate the producer/consumer
+    // relationship (in particular with Gradle 9's strict task validation).
+    dependsOn("jpackage")
     appImage.set(layout.buildDirectory.dir("jpackage/KeystoreManager"))
     icon.set(layout.projectDirectory.file("data/logo.png"))
     identityName.set(msStoreIdentityName ?: "")
