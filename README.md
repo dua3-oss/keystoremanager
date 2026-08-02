@@ -60,6 +60,43 @@ In GitHub Actions, configure the same three names as organization secrets. The
 workflow imports the certificate into the runner keychain and the Gradle build
 uses the resulting `MAC_SIGN_KEYCHAIN`.
 
+Microsoft Store MSIX
+--------------------
+
+`createMsix` builds an unsigned x64 MSIX from the Windows `jpackage` app image.
+This is intentional: the Microsoft Store signs packages during ingestion, so no
+Windows signing certificate is needed for a Store submission. The package is
+written to `build/distributions/KeystoreManager-<version>-x64.msix`.
+
+First reserve the application name in Partner Center, then copy the **Package/
+Identity/Name** and **Package/Identity/Publisher** values exactly as shown
+there. Add these to the ignored `.secrets.env` file for a local build:
+
+```
+MS_STORE_IDENTITY_NAME=<Partner Center package identity name>
+MS_STORE_PUBLISHER=CN=<Partner Center publisher value>
+MS_STORE_PUBLISHER_DISPLAY_NAME=dua3
+```
+
+Run the package build on Windows with the Windows 10 or 11 SDK installed (it
+provides `MakeAppx.exe`):
+
+```
+./gradlew createMsix
+```
+
+The release workflow runs this task on every tag and publishes the resulting
+MSIX alongside the other release artifacts. Configure
+`MS_STORE_IDENTITY_NAME` and `MS_STORE_PUBLISHER` as GitHub Actions secrets;
+`MS_STORE_PUBLISHER_DISPLAY_NAME` is optional and defaults to `dua3`. The first
+Store submission must still be created in Partner Center, including the Store
+listing and age-rating questionnaire; that step establishes the Store identity
+used by the manifest. Upload the unsigned MSIX from the GitHub release there
+and Microsoft Store performs the signing.
+For later API-driven submissions, add `MS_STORE_APP_ID`,
+`MS_STORE_TENANT_ID`, `MS_STORE_CLIENT_ID`, and `MS_STORE_CLIENT_SECRET` after
+associating a Microsoft Entra application with the Partner Center account.
+
 Entry Points
 ------------
 - Main class: `com.dua3.app.keystoremanager.Main`

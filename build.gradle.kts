@@ -25,6 +25,9 @@ import org.gradle.process.ExecOperations
 import org.gradle.api.file.FileSystemOperations
 import java.util.Base64
 import java.io.ByteArrayOutputStream
+import java.awt.RenderingHints
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
 
 plugins {
     id("java")
@@ -74,6 +77,15 @@ val externalMacSigningKeychain = providers.gradleProperty("mac.keychain").orNull
 val localMacSigningKeychain = layout.buildDirectory.file("macos-signing.keychain-db").get().asFile.absolutePath
 val macSigningKeychain = externalMacSigningKeychain
     ?: localMacSigningKeychain.takeIf { !macSigningCertificate.isNullOrBlank() && !macSigningCertificatePassword.isNullOrBlank() }
+
+// The Microsoft Store assigns the package identity when its name is reserved in
+// Partner Center. MSIX packages uploaded there do not need a signing certificate:
+// the Store validates and signs them during ingestion.
+val msStoreIdentityName = releaseSecret("MS_STORE_IDENTITY_NAME")
+val msStorePublisher = releaseSecret("MS_STORE_PUBLISHER")
+val msStorePublisherDisplayName = releaseSecret("MS_STORE_PUBLISHER_DISPLAY_NAME")
+    ?.takeIf { it.isNotBlank() }
+    ?: "dua3"
 
 /////////////////////////////////////////////////////////////////////////////
 object Meta {
@@ -439,11 +451,208 @@ fun isDevelopmentVersion(versionString: String): Boolean {
 
 val isReleaseVersion = !isDevelopmentVersion(project.version.toString())
 val isSnapshot = project.version.toString().toDefaultLowerCase().contains("snapshot")
+val isWindowsArm = org.gradle.internal.os.OperatingSystem.current().isWindows &&
+    System.getProperty("os.arch").toDefaultLowerCase() in setOf("aarch64", "arm64")
 
 jdk {
     version = rootProject.libs.versions.jdk.get()
     javaFxBundled = true
-    nativeImageCapable = true
+    // The Native Image Kit is not available for Windows ARM.
+    nativeImageCapable = !isWindowsArm
+}
+
+/**
+ * Packages the Windows jpackage app image as an unsigned MSIX for Microsoft
+ * Store ingestion. It is deliberately not suitable for sideloading: sideloaded
+ * MSIX packages must be signed with a trusted certificate.
+ */
+abstract class CreateMsixTask @Inject constructor(
+    private val execOperations: ExecOperations,
+    private val fs: FileSystemOperations
+) : DefaultTask() {
+    @get:InputDirectory
+    abstract val appImage: DirectoryProperty
+
+    @get:InputFile
+    abstract val icon: RegularFileProperty
+
+    @get:Input
+    abstract val identityName: Property<String>
+
+    @get:Input
+    abstract val publisher: Property<String>
+
+    @get:Input
+    abstract val publisherDisplayName: Property<String>
+
+    @get:Input
+    abstract val packageVersion: Property<String>
+
+    @get:Input
+    abstract val architecture: Property<String>
+
+    @get:OutputFile
+    abstract val outputFile: RegularFileProperty
+
+    private fun xml(value: String) = value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;")
+
+    private fun createLogo(source: File, target: File, size: Int) {
+        val image = ImageIO.read(source) ?: throw GradleException("Unable to read MSIX icon: ${source.absolutePath}")
+        val scaled = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
+        val graphics = scaled.createGraphics()
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+            graphics.drawImage(image, 0, 0, size, size, null)
+        } finally {
+            graphics.dispose()
+        }
+        ImageIO.write(scaled, "png", target)
+    }
+
+    private fun createWideLogo(source: File, target: File) {
+        val image = ImageIO.read(source) ?: throw GradleException("Unable to read MSIX icon: ${source.absolutePath}")
+        val wideLogo = BufferedImage(310, 150, BufferedImage.TYPE_INT_ARGB)
+        val graphics = wideLogo.createGraphics()
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+            graphics.drawImage(image, 80, 0, 150, 150, null)
+        } finally {
+            graphics.dispose()
+        }
+        ImageIO.write(wideLogo, "png", target)
+    }
+
+    private fun makeAppx(): File {
+        System.getenv("MAKEAPPX_PATH")?.trim()?.takeIf { it.isNotEmpty() }?.let { configured ->
+            val executable = File(configured)
+            check(executable.isFile) { "MAKEAPPX_PATH does not point to MakeAppx.exe: ${executable.absolutePath}" }
+            return executable
+        }
+
+        System.getenv("PATH").orEmpty().split(File.pathSeparator).forEach { directory ->
+            val executable = File(directory, "MakeAppx.exe")
+            if (executable.isFile) return executable
+        }
+
+        val sdkRoot = File(System.getenv("ProgramFiles(x86)") ?: "C:\\Program Files (x86)", "Windows Kits\\10\\bin")
+        if (sdkRoot.isDirectory) {
+            val hostArchitecture = when (System.getProperty("os.arch").toDefaultLowerCase()) {
+                "aarch64", "arm64" -> "arm64"
+                else -> "x64"
+            }
+            val executables = sdkRoot.walkTopDown()
+                .filter { it.isFile && it.name.equals("MakeAppx.exe", ignoreCase = true) }
+                .toList()
+            executables
+                .filter { it.parentFile.name.equals(hostArchitecture, ignoreCase = true) }
+                .maxByOrNull { it.parentFile.parentFile.name }
+                ?.let { return it }
+            executables.maxByOrNull { it.parentFile.parentFile.name }?.let { return it }
+        }
+        throw GradleException(
+            "MakeAppx.exe was not found. Install the Windows 10/11 SDK, or set MAKEAPPX_PATH to its full path."
+        )
+    }
+
+    @TaskAction
+    fun create() {
+        check(org.gradle.internal.os.OperatingSystem.current().isWindows) {
+            "createMsix must run on Windows."
+        }
+        check(identityName.get().isNotBlank()) {
+            "MS_STORE_IDENTITY_NAME is required. Copy the Package/Identity/Name value from Partner Center."
+        }
+        check(publisher.get().isNotBlank()) {
+            "MS_STORE_PUBLISHER is required. Copy the Package/Identity/Publisher value from Partner Center."
+        }
+        val staging = temporaryDir.resolve("msix")
+        val assets = staging.resolve("Assets")
+        fs.delete { delete(staging) }
+        assets.mkdirs()
+
+        fs.copy {
+            from(appImage)
+            into(staging.resolve("KeystoreManager"))
+        }
+        createLogo(icon.get().asFile, assets.resolve("Square44x44Logo.png"), 44)
+        createLogo(icon.get().asFile, assets.resolve("Square150x150Logo.png"), 150)
+        createLogo(icon.get().asFile, assets.resolve("StoreLogo.png"), 50)
+        createWideLogo(icon.get().asFile, assets.resolve("Wide310x150Logo.png"))
+
+        staging.resolve("AppxManifest.xml").writeText(
+            """<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <Identity Name="${xml(identityName.get())}" Publisher="${xml(publisher.get())}" Version="${xml(packageVersion.get())}" ProcessorArchitecture="${xml(architecture.get())}" />
+  <Properties>
+    <DisplayName>Keystore Manager</DisplayName>
+    <PublisherDisplayName>${xml(publisherDisplayName.get())}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Resources><Resource Language="en-us" /></Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Applications>
+    <Application Id="App" Executable="KeystoreManager\KeystoreManager.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Keystore Manager" Description="Manage cryptographic keystores" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
+</Package>
+""".trimIndent() + "\n"
+        )
+
+        val destination = outputFile.get().asFile
+        destination.parentFile.mkdirs()
+        destination.delete()
+        execOperations.exec {
+            commandLine(makeAppx().absolutePath, "pack", "/d", staging.absolutePath, "/p", destination.absolutePath, "/o")
+        }
+    }
+}
+
+fun msixVersion(version: String): String {
+    val components = version.split('.').map {
+        it.toIntOrNull() ?: throw GradleException("MSIX version must be numeric: $version")
+    }
+    require(components.size <= 4 && components.all { it in 0..65535 }) {
+        "MSIX version must contain at most four components from 0 through 65535: $version"
+    }
+    return (components + List(4 - components.size) { 0 }).joinToString(".")
+}
+
+val msixArchitecture = when (System.getProperty("os.arch").toDefaultLowerCase()) {
+    "amd64", "x86_64" -> "x64"
+    "aarch64", "arm64" -> "arm64"
+    "x86", "i386" -> "x86"
+    else -> throw GradleException("Unsupported MSIX architecture: ${System.getProperty("os.arch")}")
+}
+
+val createMsix = tasks.register<CreateMsixTask>("createMsix") {
+    group = "distribution"
+    description = "Creates an unsigned MSIX package for Microsoft Store ingestion."
+    dependsOn("jpackageImage")
+    appImage.set(layout.buildDirectory.dir("jpackage/KeystoreManager"))
+    icon.set(layout.projectDirectory.file("data/logo.png"))
+    identityName.set(msStoreIdentityName ?: "")
+    publisher.set(msStorePublisher ?: "")
+    publisherDisplayName.set(msStorePublisherDisplayName)
+    packageVersion.set(msixVersion(packagingVersion))
+    architecture.set(msixArchitecture)
+    outputFile.set(layout.buildDirectory.file("distributions/KeystoreManager-${msixVersion(packagingVersion)}-$msixArchitecture.msix"))
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isWindows }
 }
 
 java {

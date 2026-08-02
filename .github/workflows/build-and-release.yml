@@ -140,12 +140,19 @@ jobs:
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
           APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+          MS_STORE_IDENTITY_NAME: ${{ secrets.MS_STORE_IDENTITY_NAME }}
+          MS_STORE_PUBLISHER: ${{ secrets.MS_STORE_PUBLISHER }}
+          MS_STORE_PUBLISHER_DISPLAY_NAME: ${{ secrets.MS_STORE_PUBLISHER_DISPLAY_NAME }}
         run: |
           set -euo pipefail
           if [ "${{ matrix.os }}" == "macos-26" ]; then
             # This task creates, signs, verifies, notarizes, and staples both
             # macOS DMGs in build/distributions.
             ./gradlew --no-daemon --stacktrace createSignedArtifacts -PinstallerType=${{ matrix.installerType }}
+          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+            # jpackage creates the regular EXE; createMsix repackages its app
+            # image as an unsigned MSIX. Microsoft Store signs it on ingestion.
+            ./gradlew --no-daemon --stacktrace jpackage createMsix -PinstallerType=${{ matrix.installerType }}
           else
             ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }}
           fi
@@ -202,7 +209,7 @@ jobs:
           mkdir -p artifacts
           shopt -s nullglob
           # Look for common installer extensions in build/jpackage and build/distributions
-          for f in build/jpackage/*.{dmg,pkg,msi,exe,deb,rpm} build/distributions/*.{dmg,DMG}; do
+          for f in build/jpackage/*.{dmg,pkg,msi,exe,deb,rpm,msix} build/distributions/*.{dmg,DMG,msix}; do
             [ -e "$f" ] || continue
             cp -v "$f" artifacts/
           done
