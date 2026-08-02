@@ -1,7 +1,7 @@
 import org.gradle.internal.extensions.stdlib.toDefaultLowerCase
 
 plugins {
-    id("io.github.ben-manes.versions.settings") version "0.57.0"
+    id("io.github.ben-manes.versions.settings") version "0.58.0"
 }
 
 rootProject.name = "keystoremanager"

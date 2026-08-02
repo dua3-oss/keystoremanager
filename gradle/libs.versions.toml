@@ -4,6 +4,7 @@ forbiddenapis = { id = "de.thetaphi.forbiddenapis", version = "3.10" }
 graalvm = { id = "org.graalvm.buildtools.native", version = "1.1.6" }
 jdk = { id = "com.dua3.gradle.jdkprovider", version = "0.11.0" }
 jlink = { id = "org.beryx.jlink", version = "4.1.1" }
+jreleaser = { id = "org.jreleaser", version = "1.25.0" }
 spotbugs = { id = "com.github.spotbugs", version = "6.5.9" }
 test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
 

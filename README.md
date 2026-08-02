@@ -40,6 +40,23 @@ Run (will first check JavaFX availability):
 
 If JavaFX is not available at runtime, the `verifyJavaFxSetup` task will fail with an explanatory message.
 
+macOS Release Signing
+---------------------
+
+For a signed local macOS build, place the following values in the ignored
+`.secrets.env` file: `MAC_DEV_SIGN_IDENTITY`, `MAC_DEV_SIGN_CERT_P12` (Base64
+PKCS#12), and `MAC_DEV_SIGN_CERT_PASSWORD`. Gradle imports the certificate into
+an ephemeral build keychain before `jpackage` runs.
+
+```
+./gradlew createSignedArtifacts
+```
+
+In GitHub Actions, configure the same three names as organization secrets. The
+workflow imports the certificate into the runner keychain and the Gradle build
+uses the resulting `MAC_SIGN_KEYCHAIN`. Notarization additionally uses
+`APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`, and `APPLE_NOTARY_KEY_P8`.
+
 Entry Points
 ------------
 - Main class: `com.dua3.app.keystoremanager.Main`

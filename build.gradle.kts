@@ -23,6 +23,8 @@ import org.gradle.internal.extensions.stdlib.toDefaultLowerCase
 import javax.inject.Inject
 import org.gradle.process.ExecOperations
 import org.gradle.api.file.FileSystemOperations
+import java.util.Base64
+import java.io.ByteArrayOutputStream
 
 plugins {
     id("java")
@@ -32,6 +34,7 @@ plugins {
     alias(libs.plugins.jdk)
     alias(libs.plugins.graalvm)
     alias(libs.plugins.jlink)
+    alias(libs.plugins.jreleaser)
     alias(libs.plugins.test.logger)
     alias(libs.plugins.spotbugs)
     alias(libs.plugins.cabe)
@@ -43,6 +46,34 @@ project.version = resolvedProjectVersion
 val packagingVersion = resolvedProjectVersion
     .replace(Regex("[-.]\\w*(SNAPSHOT|ALPHA|BETA|RC).*", RegexOption.IGNORE_CASE), "")
     .ifBlank { "0.0.0" }
+
+/**
+ * Loads uncommitted release credentials for local builds. Environment variables
+ * take precedence, so the same names can be supplied as GitHub Actions secrets.
+ */
+fun loadSecrets(file: File): Map<String, String> = buildMap {
+    if (!file.isFile) return@buildMap
+    file.forEachLine { line ->
+        val trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#")) return@forEachLine
+        val separator = trimmed.indexOf('=')
+        if (separator <= 0) return@forEachLine
+        val key = trimmed.substring(0, separator).trim()
+        val value = trimmed.substring(separator + 1).trim().removeSurrounding("\"").removeSurrounding("'")
+        if (key.isNotEmpty()) put(key, value)
+    }
+}
+
+val localSecrets = loadSecrets(rootProject.file(".secrets.env"))
+fun releaseSecret(name: String): String? = providers.environmentVariable(name).orNull ?: localSecrets[name]
+
+val macSigningIdentity = providers.gradleProperty("mac.identity").orNull ?: releaseSecret("MAC_DEV_SIGN_IDENTITY")
+val macSigningCertificate = releaseSecret("MAC_DEV_SIGN_CERT_P12")
+val macSigningCertificatePassword = releaseSecret("MAC_DEV_SIGN_CERT_PASSWORD")
+val externalMacSigningKeychain = providers.gradleProperty("mac.keychain").orNull ?: releaseSecret("MAC_SIGN_KEYCHAIN")
+val localMacSigningKeychain = layout.buildDirectory.file("macos-signing.keychain-db").get().asFile.absolutePath
+val macSigningKeychain = externalMacSigningKeychain
+    ?: localMacSigningKeychain.takeIf { !macSigningCertificate.isNullOrBlank() && !macSigningCertificatePassword.isNullOrBlank() }
 
 /////////////////////////////////////////////////////////////////////////////
 object Meta {
@@ -58,6 +89,20 @@ object Meta {
     const val ORGANIZATION_URL = "https://www.dua3.com"
 }
 /////////////////////////////////////////////////////////////////////////////
+
+// Keep JReleaser anchored at the repository root when its release tasks are
+// invoked from CI or a local checkout. The token is intentionally supplied at
+// execution time, never from the repository or .secrets.env.
+jreleaser {
+    gitRootSearch.set(true)
+    release {
+        github {
+            repoOwner.set("dua3-oss")
+            name.set("keystoremanager")
+            token.set(providers.environmentVariable("JRELEASER_GITHUB_TOKEN").orElse(providers.environmentVariable("GITHUB_TOKEN")))
+        }
+    }
+}
 
 dependencyLocking {
     lockAllConfigurations()
@@ -148,22 +193,17 @@ jlink {
             installerOptions = listOf("--icon", iconFile.absolutePath)
         }
 
-        // Conditional code signing options supplied via -P properties (CI only)
-        // macOS signing
-        val macSign = (project.findProperty("mac.sign") as String?)?.toBoolean() == true
-        if (macSign) {
-            val identity = (project.findProperty("mac.identity") as String?)?.trim().orEmpty()
-            if (identity.isNotEmpty()) {
-                // Sign the app image as well as the enclosing DMG. Supplying
-                // this only as an installer option can leave the .app with an
-                // ad-hoc signature, which cannot be notarized.
-                imageOptions.addAll("--mac-sign", "--mac-app-image-sign-identity", identity)
-                installerOptions.addAll("--mac-sign", "--mac-app-image-sign-identity", identity)
-                val keychain = (project.findProperty("mac.keychain") as String?)?.trim()
-                if (!keychain.isNullOrEmpty()) {
-                    imageOptions.addAll("--mac-signing-keychain", keychain)
-                    installerOptions.addAll("--mac-signing-keychain", keychain)
-                }
+        // macOS signing credentials may come from .secrets.env for a local
+        // release or from same-named GitHub Actions organization secrets.
+        if (os.isMacOsX && !macSigningIdentity.isNullOrBlank()) {
+            // Sign the app image as well as the enclosing DMG. Supplying this
+            // only as an installer option can leave the .app with an ad-hoc
+            // signature, which cannot be notarized.
+            imageOptions.addAll("--mac-sign", "--mac-app-image-sign-identity", macSigningIdentity)
+            installerOptions.addAll("--mac-sign", "--mac-app-image-sign-identity", macSigningIdentity)
+            if (!macSigningKeychain.isNullOrBlank()) {
+                imageOptions.addAll("--mac-signing-keychain", macSigningKeychain)
+                installerOptions.addAll("--mac-signing-keychain", macSigningKeychain)
             }
         }
 
@@ -201,6 +241,142 @@ val copyJpackageInstallers = tasks.register<Sync>("copyJpackageInstallers") {
     into(layout.buildDirectory.dir("distributions"))
 }
 
+abstract class PrepareMacSigningKeychainTask @Inject constructor(
+    private val execOperations: ExecOperations
+) : DefaultTask() {
+    @get:Internal
+    abstract val signingIdentity: Property<String>
+
+    @get:Internal
+    abstract val certificateBase64: Property<String>
+
+    @get:Internal
+    abstract val certificatePassword: Property<String>
+
+    @get:Internal
+    abstract val keychainPath: Property<String>
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun prepare() {
+        val keychain = File(keychainPath.get())
+        val certificate = temporaryDir.resolve("mac-signing-certificate.p12")
+        keychain.parentFile.mkdirs()
+
+        try {
+            certificate.writeBytes(Base64.getDecoder().decode(certificateBase64.get()))
+        } catch (e: IllegalArgumentException) {
+            throw GradleException("MAC_DEV_SIGN_CERT_P12 must be Base64-encoded PKCS#12 data.", e)
+        }
+
+        try {
+            execOperations.exec {
+                commandLine("security", "delete-keychain", keychain.absolutePath)
+                isIgnoreExitValue = true
+            }
+            execOperations.exec {
+                commandLine("security", "create-keychain", "-p", "local-build", keychain.absolutePath)
+            }
+            execOperations.exec {
+                commandLine("security", "set-keychain-settings", keychain.absolutePath)
+            }
+            execOperations.exec {
+                commandLine("security", "unlock-keychain", "-p", "local-build", keychain.absolutePath)
+            }
+            execOperations.exec {
+                commandLine(
+                    "security", "import", certificate.absolutePath,
+                    "-k", keychain.absolutePath,
+                    "-f", "pkcs12",
+                    "-P", certificatePassword.get(),
+                    "-A"
+                )
+            }
+            execOperations.exec {
+                commandLine(
+                    "security", "set-key-partition-list",
+                    "-S", "apple-tool:,apple:",
+                    "-s", "-k", "local-build", keychain.absolutePath
+                )
+            }
+            val identities = ByteArrayOutputStream()
+            execOperations.exec {
+                commandLine("security", "find-identity", "-v", "-p", "codesigning", keychain.absolutePath)
+                standardOutput = identities
+            }
+            check(identities.toString().contains(signingIdentity.get())) {
+                "The imported keychain does not contain MAC_DEV_SIGN_IDENTITY."
+            }
+        } finally {
+            certificate.delete()
+        }
+    }
+}
+
+val prepareMacSigningKeychain = tasks.register<PrepareMacSigningKeychainTask>("prepareMacSigningKeychain") {
+    group = "distribution"
+    description = "Imports the local macOS signing certificate into an ephemeral keychain."
+    signingIdentity.set(macSigningIdentity)
+    certificateBase64.set(macSigningCertificate)
+    certificatePassword.set(macSigningCertificatePassword)
+    keychainPath.set(localMacSigningKeychain)
+
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isMacOsX &&
+            externalMacSigningKeychain.isNullOrBlank() &&
+            !macSigningIdentity.isNullOrBlank() &&
+            !macSigningCertificate.isNullOrBlank() &&
+            !macSigningCertificatePassword.isNullOrBlank()
+    }
+}
+
+abstract class RemoveMacSigningKeychainTask @Inject constructor(
+    private val execOperations: ExecOperations
+) : DefaultTask() {
+    @get:Internal
+    abstract val keychainPath: Property<String>
+
+    @TaskAction
+    fun remove() {
+        execOperations.exec {
+            commandLine("security", "delete-keychain", keychainPath.get())
+            isIgnoreExitValue = true
+        }
+    }
+}
+
+val removeMacSigningKeychain = tasks.register<RemoveMacSigningKeychainTask>("removeMacSigningKeychain") {
+    group = "distribution"
+    description = "Removes the build-local macOS signing keychain."
+    keychainPath.set(localMacSigningKeychain)
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isMacOsX && externalMacSigningKeychain.isNullOrBlank()
+    }
+}
+
+val verifyMacSigningConfiguration = tasks.register("verifyMacSigningConfiguration") {
+    group = "distribution"
+    description = "Verifies that macOS signing credentials are available."
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+
+    doLast {
+        check(!macSigningIdentity.isNullOrBlank()) {
+            "MAC_DEV_SIGN_IDENTITY is required to create signed macOS artifacts."
+        }
+        check(!externalMacSigningKeychain.isNullOrBlank() ||
+            (!macSigningCertificate.isNullOrBlank() && !macSigningCertificatePassword.isNullOrBlank())) {
+            "Provide MAC_SIGN_KEYCHAIN, or both MAC_DEV_SIGN_CERT_P12 and MAC_DEV_SIGN_CERT_PASSWORD."
+        }
+    }
+}
+
+prepareMacSigningKeychain.configure {
+    mustRunAfter(verifyMacSigningConfiguration)
+}
+
 abstract class CleanupMacInstallersTask @Inject constructor(
     private val fs: FileSystemOperations
 ) : DefaultTask() {
@@ -228,7 +404,8 @@ val cleanupMacInstallers = tasks.register<CleanupMacInstallersTask>("cleanupMacI
 }
 
 tasks.named("jpackage") {
-    finalizedBy(copyJpackageInstallers)
+    dependsOn(prepareMacSigningKeychain)
+    finalizedBy(copyJpackageInstallers, removeMacSigningKeychain)
 }
 
 tasks.named("copyJpackageInstallers") {
@@ -508,6 +685,62 @@ tasks.register<CreateMacAppTask>("createMacApp") {
     appBundle.set(layout.buildDirectory.dir("native/bundle/KeystoreManager.app"))
 }
 
+abstract class SignMacAppTask @Inject constructor(
+    private val execOperations: ExecOperations
+) : DefaultTask() {
+    @get:InputDirectory
+    abstract val appBundle: DirectoryProperty
+
+    @get:Internal
+    abstract val signingIdentity: Property<String>
+
+    @get:Internal
+    abstract val signingKeychain: Property<String>
+
+    @TaskAction
+    fun sign() {
+        val bundle = appBundle.get().asFile
+        val executable = File(bundle, "Contents/MacOS/KeystoreManager")
+        check(executable.isFile) { "Missing native executable: ${executable.absolutePath}" }
+
+        val keychainArguments = signingKeychain.orNull
+            ?.takeIf { it.isNotBlank() }
+            ?.let { listOf("--keychain", it) }
+            ?: emptyList()
+        fun sign(target: File) {
+            execOperations.exec {
+                commandLine(
+                    listOf("codesign", "--force", "--options", "runtime", "--timestamp", "--sign", signingIdentity.get()) +
+                        keychainArguments + target.absolutePath
+                )
+            }
+        }
+
+        sign(executable)
+        sign(bundle)
+        execOperations.exec {
+            commandLine("codesign", "--verify", "--deep", "--strict", "--verbose=2", bundle.absolutePath)
+        }
+    }
+}
+
+val signMacApp = tasks.register<SignMacAppTask>("signMacApp") {
+    group = "distribution"
+    description = "Signs the GraalVM native macOS application bundle."
+    dependsOn("createMacApp", prepareMacSigningKeychain)
+    appBundle.set(layout.buildDirectory.dir("native/bundle/KeystoreManager.app"))
+    signingIdentity.set(macSigningIdentity)
+    signingKeychain.set(macSigningKeychain)
+
+    onlyIf {
+        org.gradle.internal.os.OperatingSystem.current().isMacOsX && !macSigningIdentity.isNullOrBlank()
+    }
+}
+
+signMacApp.configure {
+    finalizedBy(removeMacSigningKeychain)
+}
+
 abstract class CreateDmgTask @Inject constructor(
     private val execOperations: ExecOperations,
     private val fs: FileSystemOperations,
@@ -627,7 +860,7 @@ abstract class CreateDmgTask @Inject constructor(
 tasks.register<CreateDmgTask>("createNativeDmg") {
     group = "distribution"
     description = "Creates a macOS DMG for the GraalVM native executable by swapping the bundle in the jpackaged DMG."
-    dependsOn("createMacApp")
+    dependsOn(signMacApp)
     mustRunAfter("jpackage")
     mustRunAfter("copyJpackageInstallers")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
@@ -642,4 +875,14 @@ tasks.register("createDistributions") {
 
     dependsOn("jpackage")
     dependsOn("createNativeDmg")
+}
+
+tasks.register("createSignedArtifacts") {
+    group = "distribution"
+    description = "Creates all signed release artifacts for the current platform."
+
+    dependsOn("jpackage")
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        dependsOn(verifyMacSigningConfiguration, "createNativeDmg")
+    }
 }

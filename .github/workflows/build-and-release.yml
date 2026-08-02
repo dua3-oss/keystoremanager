@@ -6,6 +6,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build:
     name: Build and Package (${{ matrix.os }})
@@ -128,33 +131,18 @@ jobs:
 #          echo "GPG_PASSPHRASE=$GPG_PASSPHRASE" >> "$GITHUB_ENV"
 
       # ---------- Create artifacts ----------
-      # Default: Create installer with jpackage (with optional signing args)
+      # Default: Create installer with jpackage. macOS signing credentials are
+      # read by Gradle from the environment prepared above.
       - name: Create installer with jpackage
         if: matrix.artifactSuffix != 'windows-arm'
         shell: bash
         run: |
           set -euo pipefail
-          signing_args=()
-          if [[ "${MAC_SIGN:-}" == "true" ]]; then
-            signing_args=(
-              "-Pmac.sign=true"
-              "-Pmac.identity=$MAC_DEV_SIGN_IDENTITY"
-              "-Pmac.keychain=$MAC_SIGN_KEYCHAIN"
-            )
-          fi
-          ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }} "${signing_args[@]}"
+          ./gradlew --no-daemon --stacktrace jpackage -PinstallerType=${{ matrix.installerType }}
           if [ "${{ matrix.os }}" == "macos-26" ]; then
-            # Create and sign the native app before it is copied into its DMG.
-            ./gradlew --no-daemon --stacktrace createMacApp
-            native_app="build/native/bundle/KeystoreManager.app"
-            native_executable="$native_app/Contents/MacOS/keystoremanager"
-            [ -f "$native_executable" ] || { echo "::error::Missing native executable: $native_executable"; exit 1; }
-            codesign --force --options runtime --timestamp --sign "$MAC_DEV_SIGN_IDENTITY" "$native_executable"
-            codesign --force --options runtime --timestamp --sign "$MAC_DEV_SIGN_IDENTITY" "$native_app"
-            codesign --verify --deep --strict --verbose=2 "$native_app"
-            # Preserve the signed app created above; createNativeDmg otherwise
-            # reruns createMacApp through its task dependency.
-            ./gradlew --no-daemon --stacktrace createNativeDmg -x createMacApp
+            # This task creates, signs, and verifies the native app before it
+            # is copied into its DMG.
+            ./gradlew --no-daemon --stacktrace createNativeDmg
           fi
 
       # Windows ARM: Build app-image only (no native installer)
