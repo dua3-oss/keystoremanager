@@ -1,0 +1,3 @@
+Keystore Manager est une application de bureau permettant de créer, d’examiner et de gérer des magasins de clés cryptographiques. Gérez plusieurs magasins de clés dans des onglets, générez des clés privées et secrètes, créez des certificats, consultez les détails des entrées et exportez une sélection vers un nouveau magasin de clés. L’application valide également les données PEM et prend en charge les thèmes clair et sombre adaptés au système.
+
+L’application est publiée sous la GNU General Public License version 3. Le code source complet est disponible sur la page du projet GitHub : https://github.com/dua3-oss/keystoremanager.

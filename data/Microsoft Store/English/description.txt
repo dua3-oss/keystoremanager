@@ -1,0 +1,3 @@
+Keystore Manager is a desktop app for creating, inspecting, and managing cryptographic keystores. Work with multiple keystores in tabs, generate private and secret keys, create certificates, review entry details, and export selected entries to a new keystore. It also validates PEM data and supports system-aware light and dark themes.
+
+The Application is released under GNU GENERAL PUBLIC LICENSE version 3, full source code is available at the GitHub project page: https://github.com/dua3-oss/keystoremanager.

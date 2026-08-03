@@ -1,0 +1,3 @@
+Keystore Manager è un'app desktop per creare, esaminare e gestire archivi di chiavi crittografiche. Gestisci più archivi in schede, genera chiavi private e segrete, crea certificati, consulta i dettagli delle voci ed esporta le voci selezionate in un nuovo archivio. L'app convalida anche i dati PEM e supporta temi chiari e scuri basati sulle impostazioni di sistema.
+
+L'applicazione è distribuita con licenza GNU General Public License versione 3. Il codice sorgente completo è disponibile nella pagina del progetto GitHub: https://github.com/dua3-oss/keystoremanager.
