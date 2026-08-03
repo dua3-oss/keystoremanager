@@ -9,7 +9,7 @@ spotbugs = { id = "com.github.spotbugs", version = "6.5.9" }
 test-logger = { id = "com.adarshr.test-logger", version = "4.0.0" }
 
 [versions]
-projectVersion = "1.0.11"
+projectVersion = "1.0.12"
 
 jdk = "25"
 
@@ -20,7 +20,7 @@ ikonli = "12.4.0"
 jspecify = "1.0.1"
 junit-bom = "6.1.2"
 log4j-bom = "2.26.1"
-slb4j = "0.12.2"
+slb4j = "0.12.3"
 spotbugs = "4.10.3"
 
 [libraries]

@@ -26,5 +26,5 @@ org.osgi:org.osgi.annotation.bundle:2.0.0=compileClasspath
 org.osgi:org.osgi.annotation.versioning:1.1.2=compileClasspath
 org.osgi:org.osgi.resource:1.0.0=compileClasspath
 org.osgi:org.osgi.service.serviceloader:1.0.0=compileClasspath
-org.slb4j:slb4j:0.12.2=compileClasspath,runtimeClasspath
+org.slb4j:slb4j:0.12.3=compileClasspath,runtimeClasspath
 empty=annotationProcessor
